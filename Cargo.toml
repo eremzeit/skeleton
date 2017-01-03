@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["Alan Jones <erem.zeit@gmail.com>"]
 
 [dependencies]
+regex = "*"
+rand = "*"
