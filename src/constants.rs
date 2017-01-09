@@ -4,11 +4,11 @@ pub const WHITE: Color = 0x00;
 pub const BLACK: Color = 0x01;
 
 pub const PIECE_TYPE_COUNT: u8 = 12;
+pub const PIECE_TYPE_COLOR_OFFSET: u8 = 6;
 
-
-pub type PieceType = u8;
 // These function both as offsets into the existince bitboard as 
 // well as piece type values on the Mailbox board.  
+pub type PieceClass = u8;
 pub const PAWN: u8 = 0x00;
 pub const KNIGHT: u8 = 0x01;
 pub const BISHOP: u8 = 0x02;
@@ -16,6 +16,7 @@ pub const ROOK: u8 = 0x03;
 pub const QUEEN: u8 = 0x04;
 pub const KING: u8 = 0x5;
 
+pub type PieceType = u8;
 pub const W_PAWN: u8 = 0x00;
 pub const W_KNIGHT: u8 = 0x01;
 pub const W_BISHOP: u8 = 0x02;

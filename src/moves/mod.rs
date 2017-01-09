@@ -4,8 +4,9 @@ use types::*;
 use util::*;
 use constants::*;
 use board::Board;
-
 use std::fmt;
+use std::iter;
+use std::cmp;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Move {
@@ -100,6 +101,9 @@ impl AttackingRay {
 
 
 
+// maybe in the future we could convert all these generator 
+// functions to return boxed iterators.
+//let x: Box<Iterator<Item=Move>> = Box::new(moves.into_iter());
 
 //pub fn generate_moves(board: Board) -> MoveList {
 //    generate_bishop_moves(board)
@@ -182,7 +186,7 @@ pub fn vertical_squares(pos: Position) -> AttackingRay {
 fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> Vec<Move> {
     let mut moves: MoveList = Vec::with_capacity(20);
 
-    for (i, dest_pos) in squares.iter().enumerate() {
+    for dest_pos in squares.iter() {
         let dest_piece = board.mb.get(dest_pos.0, dest_pos.1);
 
         if &piece.to_position() == dest_pos {
@@ -199,11 +203,7 @@ fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> 
             mv.meta_info = QUIET_MOVE;
             moves.push(mv);
         } else {
-            
-            let is_opponent_piece = (board.whites_turn() && dest_piece >= B_PAWN && dest_piece <= B_KING)
-                || (board.blacks_turn() && dest_piece >= W_PAWN && dest_piece <= W_KING);
-
-            if is_opponent_piece {
+            if !is_same_color(piece.0, dest_piece) {
                 let mut mv = Move::new();
                 mv.origin_piece = piece.0;
                 mv.dest_piece = dest_piece;                
@@ -221,7 +221,6 @@ fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> 
 }
 
 pub fn generate_bishop_moves(piece: PiecePosition, board: &Board) -> MoveList {
-
     let mut diag = diag_squares(piece.to_position());
     let mut anti_diag = anti_diag_squares(piece.to_position());
 
@@ -247,8 +246,8 @@ pub fn generate_rook_moves(piece: PiecePosition, board: &Board) -> MoveList {
     
     let (pos_hor, neg_hor) = hor.squares.split_at_mut(hor.attacker_index as usize);
     let (pos_vert, neg_vert) = vert.squares.split_at_mut(vert.attacker_index as usize);
-    neg_hor.reverse();
-    neg_vert.reverse();
+    pos_hor.reverse();
+    pos_vert.reverse();
 
     let mut moves = Vec::with_capacity(16);
     moves.append(&mut moves_from_ray(piece, pos_hor, board));
@@ -257,4 +256,77 @@ pub fn generate_rook_moves(piece: PiecePosition, board: &Board) -> MoveList {
     moves.append(&mut moves_from_ray(piece, neg_vert, board));
 
     moves   
+}
+
+pub fn generate_queen_moves(piece: PiecePosition, board: &Board) -> MoveList {
+    iter::empty().chain(generate_bishop_moves(piece, board)).chain(generate_rook_moves(piece, board)).collect::<Vec<Move>>()
+}
+
+pub fn generate_knight_moves(piece: PiecePosition, board: &Board) -> MoveList {
+    let offsets: [[i8; 2]; 8] = [
+        [-1, 2],
+        [1, 2],
+        [2, -1],
+        [2, 1],
+        [1, -2],
+        [-1, -2],
+        [-2, -1],
+        [-2, 1],
+    ];
+
+    offsets.iter().filter_map(|offset| {
+        let f = piece.1 as i8 + offset[0];
+        let r = piece.2 as i8 + offset[1];
+        let other_piece = board.mb.get(f as File, r as Rank);
+        let is_valid = 
+            (f >= 0 && f < FILE_COUNT as i8) 
+            && (r >= 0 && r < RANK_COUNT as i8) 
+            && (!is_same_color(piece.0, other_piece) || other_piece == NO_PIECE);
+             
+        match is_valid {
+            true => {
+                let mv = Move {
+                    origin_piece: piece.0,
+                    origin_pos: Position(piece.1, piece.2),
+                    dest_piece: other_piece,
+                    dest_pos: Position(f as File, r as Rank),
+                    meta_info: if other_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+                };
+
+                Some(mv) 
+            },
+            false => { None }
+        }
+    }).collect::<Vec<Move>>()
+}
+
+pub fn generate_king_moves(piece: PiecePosition, board: &Board) -> MoveList {
+    let mut moves: MoveList = Vec::with_capacity(8);
+    
+    let min_f = cmp::max(piece.1 - 1, 0);
+    let max_f = cmp::min(piece.1 + 1, FILE_COUNT - 1);
+    
+    let min_r = cmp::max(piece.2 - 1, 0);
+    let max_r = cmp::min(piece.2 + 1, RANK_COUNT - 1);
+
+    for f in min_f..max_f + 1 {
+        for r in min_r..max_r + 1 {
+            let other_piece = board.mb.get(f, r);
+            if !is_same_color(piece.0, other_piece) || other_piece == NO_PIECE {
+                moves.push(Move {
+                    origin_piece: piece.0,
+                    origin_pos: Position(piece.1, piece.2),
+                    dest_piece: other_piece,
+                    dest_pos: Position(f, r),
+                    meta_info: if other_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+                })
+            }
+            
+        }
+    }
+
+    moves.into_iter().filter(|m| {
+        //filter the ones under attack by opposing pieces
+        true
+    }).collect::<Vec<Move>>()
 }

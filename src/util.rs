@@ -3,23 +3,46 @@ use types::*;
 use std::collections::hash_map::RandomState;
 use std::collections;
 
-pub fn is_same_color(to_move1: u8, to_move2: u8) -> bool {
-    (to_move1 > 0) == (to_move2 > 0)
+pub fn is_white(piece: PieceType) -> bool {
+    piece >= W_PAWN && piece <= W_KING
+}
+
+pub fn opposite_color(color: Color) -> Color {
+    if color == WHITE {
+        BLACK
+    } else {
+        WHITE 
+    }
+}
+
+pub fn is_same_color(piece1: PieceType, piece2: PieceType) -> bool {
+    (piece1 >= W_PAWN && piece1 <= W_KING) && (piece2 >= W_PAWN && piece2 <= W_KING)
+        || (piece1 >= B_PAWN && piece1 <= B_KING) && (piece2 >= B_PAWN && piece2 <= B_KING)
+        || (piece1 == NO_PIECE && piece2 == NO_PIECE)
 }
 
 pub fn assert_position_list_eq(positions1: &Vec<Position>, positions2: &Vec<Position>) {
     if cfg!(debug_assertions) {
-        assert!(are_positions_eq(positions1, positions2)); 
+
+        let diff = position_list_diff(positions1, positions2);
+        if diff.len() != 0 {
+            println!("Position list diff: {:?}", diff);
+            assert!(false); 
+        }
     }
 }
 
-pub fn are_positions_eq(positions1: &Vec<Position>, positions2: &Vec<Position>) -> bool {
+pub fn position_list_diff(positions1: &Vec<Position>, positions2: &Vec<Position>) -> Vec<Position> {
     let set1 = positions1.iter().map(|p| { *p }).collect::<collections::HashSet<Position, RandomState>>();
     let set2 = positions2.iter().map(|p| { *p }).collect::<collections::HashSet<Position, RandomState>>();
 
-    let diff = set1.symmetric_difference(&set2).collect::<Vec<&Position>>();
-    
-    diff.len() == 0
+    println!("set1: {:?}", set1);
+    println!("set2: {:?}", set2);
+    set1.symmetric_difference(&set2).map(|p| { *p }).collect::<Vec<Position>>()
+}
+
+pub fn are_positions_eq(positions1: &Vec<Position>, positions2: &Vec<Position>) -> bool {
+    position_list_diff(positions1, positions2).len() == 0
 }
 
 pub struct FileIndexIterator {
@@ -173,21 +196,17 @@ pub fn char_to_file(file_char: &str) -> File {
 }
 
 pub fn piece_position_to_str(piece_position: &PiecePosition) -> String {
-    let p_char = piece_type_to_char(piece_position.0);
-    let file_char = file_to_char(piece_position.1);
-    let rank = piece_position.2 + 1;
-    format!("{}{}{}", p_char, file_char, rank)  
+    format!("{:?}", piece_position)
 }
 
 pub fn piece_list_to_string(piece_list: &PieceList) -> String {
     let mut s = String::new();
 
     for (i, piece_position) in piece_list.iter().enumerate() {
-        let piece_str = piece_position_to_str(piece_position);
         if i == piece_list.len() - 1 {
-            s.push_str(&format!("{}", piece_str));
+            s.push_str(&format!("{:?}", piece_position));
         } else {
-            s.push_str(&format!("{}, ", piece_str));
+            s.push_str(&format!("{:?}, ", piece_position));
         }
     }
 
