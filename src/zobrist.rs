@@ -192,7 +192,6 @@ pub const HASH_EN_PASSANT_FILES: [u64; 8] = [
 //}
 
 pub fn get_board_hash(pieces: &PieceList, is_white_turn: u8, castling: u8, en_passant: u8) -> u64 {
-
     let mut h: u64 = 0;
     
     for piece in pieces {
@@ -207,9 +206,13 @@ pub fn get_board_hash(pieces: &PieceList, is_white_turn: u8, castling: u8, en_pa
 }
 
 pub fn get_piece_hash(piece_type: PieceType, file: File, rank: Rank) -> u64 {
-    let square_ind: u8 = (rank * 8 + file) as u8; // out of 64
-    let hash_ind:usize = ((square_ind as usize) * (PIECE_TYPE_COUNT as usize) + piece_type as usize) as usize;  
+    assert_ne!(piece_type, NO_PIECE);
+    assert_eq!(file < FILE_COUNT, true);
+    assert_eq!(rank < RANK_COUNT, true);
     
+    let square_ind: u8 = (rank * 8 + file) as u8; // [0, 64)
+    let hash_ind:usize = ((square_ind as usize) * (PIECE_TYPE_COUNT as usize - 1) + piece_type as usize) as usize;  
+
     let r: u64;
     unsafe {
         r = PIECE_HASHES[hash_ind]
@@ -268,13 +271,13 @@ mod tests {
         fn test_get_board_hash() {
             let pieces = Board::from_fen(START_FEN).get_pieces();
             let mut hash = get_board_hash(&pieces, WHITE, CASTLING_DEFAULT, NO_EN_PASSANT);
-            assert_eq!(hash, 5295089526049533461);
+            assert_eq!(hash, 6581545049032875306);
 
             hash = get_board_hash(&pieces, BLACK, CASTLING_DEFAULT, NO_EN_PASSANT);
-            assert_eq!(hash, 3056757801067152804);
+            assert_eq!(hash, 4055067615058736795);
             
             hash = get_board_hash(&pieces, WHITE, W_OOO | W_OO, NO_EN_PASSANT);
-            assert_eq!(hash, 8851735708471636532);
+            assert_eq!(hash, 7564386282425581835);
         }
     }
 }

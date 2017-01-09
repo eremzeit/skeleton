@@ -36,7 +36,7 @@ pub struct Board {
 
 impl Board {
     pub fn new() -> Board {
-        let mb = Mailbox([EMPTY; 128]);
+        let mb = Mailbox([NO_PIECE; 128]);
         let bb = BitBoard::create_from(&mb);
 
         let board = Board { 
@@ -53,8 +53,58 @@ impl Board {
         board
     }
     
+    pub fn whites_turn(&self) -> bool {
+        self.to_move == WHITE
+    }
+    
+    pub fn blacks_turn(&self) -> bool {
+        self.to_move == BLACK
+    }
+
+    //    A B C D E F G H
+
+    // 8   - - - - - - - -
+    // 7   - - - - - - - -
+    // 6   - - - - - - - -
+    // 5   - - - - - - - -
+    // 4   - - - - - - - -
+    // 3   - - - - - - - -
+    // 2   - - - - - - - -
+    // 1   - - - - - - - -
+    
+    pub fn print_board(&self) {
+        let mut s: String = String::new();
+        s.push_str("   A B C D E F G H\n");
+        s.push_str("                  \n");
+        
+        for r in ranks_desc() {
+            s.push_str(&format!("{}  ", r + 1));
+            
+            for f in files_asc() {
+                let piece_type = self.mb.get(f, r);
+                
+                let piece_str: String = match piece_type {
+                    NO_PIECE => { "-".to_string() },
+                    _ => { format!("{}", piece_type_to_char(piece_type)) }
+                };
+
+                s.push_str(&format!("{} ", &piece_str));
+            }
+
+            s.push_str("\n");
+
+            println!("{}", s);
+        }
+
+        println!("{}", s);
+    }
+    
     pub fn to_hash(&self) -> u64 {
         zobrist::get_board_hash(&self.get_pieces(), self.to_move, self.castling, self.en_passant)
+    }
+    
+    pub fn get_piece_position(&self, file: File, rank: Rank) -> PiecePosition {
+       PiecePosition(self.mb.get(file, rank), file, rank)
     }
     
     pub fn from_fen(fen: &str) -> Self {
@@ -64,6 +114,7 @@ impl Board {
         assert_eq!(groups.len(), 6);
         
         let pieces: PieceList = parse_fen_pieces(groups[0]);
+
         for piece_position in &pieces {
            board.mb.set(piece_position.1, piece_position.2, piece_position.0);
         }
@@ -122,7 +173,7 @@ impl Board {
             for r in 0..RANK_COUNT {
 
                 let piece_type = self.mb.get(f, r);
-                if piece_type != EMPTY {
+                if piece_type != NO_PIECE {
                     pieces.push(PiecePosition(piece_type, f, r)); 
                 }
             }
@@ -135,6 +186,30 @@ impl Board {
         self.bb = BitBoard::create_from(&self.mb);
         self.zhash = self.to_hash();
     }
+    
+    //fn _get_pieces(&self, piece_type: PieceType) -> PieceList {
+    //    let result:PieceList = vec![]; 
+
+    //    for f in 0..FILE_COUNT {
+    //        for r in 0..RANK_COUNT {
+
+    //            let _piece_type = self.mb.get(f, r);
+    //            if _piece_type == piece_type {
+    //                result.push(PiecePosition(piece_type, f, r)); 
+    //            }
+    //        }
+    //    }
+
+    //    result
+    //}
+    //
+    //fn get_pawns(&self, color: Color) -> PieceList {
+    //    self._get_pieces(if color == WHITE { W_PAWN } else { B_PAWN });
+    //}
+    //
+    //fn get_bishops(&self, color: Color) -> PieceList {
+    //    self._get_pieces(if color == WHITE { W_BISHOP } else { B_BISHOP })
+    //}
 }
 
  
@@ -143,16 +218,21 @@ fn parse_fen_pieces(piece_str: &str) -> PieceList {
 
     let mut pieces: PieceList = vec![];
 
+    println!("{}", piece_str);
+
     for (rank_pos, rank_str) in ranks.into_iter().enumerate() {
+        println!("rank({}): {}", rank_pos, rank_str);
         let r: u32 = 7 - rank_pos as u32;
         let mut f: u32 = 0;
-
+            
         for c in rank_str.chars() {
+            //println!("char at {}: {}", f, c);
             if c.is_digit(10) {
                 let digit = c.to_digit(10).expect("invalid number in fen piece list");
                 f = f + digit;
             } else if c.is_alphanumeric() {
                 let piece_position = PiecePosition(char_to_piece_type(&c), f as u8, r as u8);
+                println!("new piece: {:?}", piece_position);
                 pieces.push(piece_position);
                 f = f + 1;
             } else {
@@ -190,11 +270,19 @@ mod tests {
             assert_eq!(board.en_passant, 1);
             assert_eq!(board.castling, 0b1111);
             assert_eq!(board.mb.get(3,3), W_KNIGHT);
-            assert_eq!(board.mb.get(3,4), W_PAWN);
+
             assert_eq!(board.mb.get(7,7), B_ROOK);
+            assert_eq!(board.mb.get(4,3), W_PAWN);
             assert_eq!(board.to_move, WHITE);
             assert_eq!(board.halfmove_counter, 7);
             assert_eq!(board.fullmove_counter, 3);
+
+        }
+        
+        #[test]
+        fn test_print_board() {
+            let board = Board::from_fen(START_FEN);
+            board.print_board();
         }
     }
 
@@ -221,7 +309,7 @@ mod tests {
             assert_eq!(mb.get(0,0), 10);
         }
     }
-
+    
     #[test]
     fn parse_fen_pieces_default() {
         let pieces = parse_fen_pieces("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");

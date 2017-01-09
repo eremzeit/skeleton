@@ -19,7 +19,7 @@ impl BitBoard {
 
                 let piece_type = mailbox.get(f, r);
                 
-                if piece_type != EMPTY {
+                if piece_type != NO_PIECE {
                     let bb_index = r * 8 + f;
                     bb[piece_type] = bb[piece_type] | 1 << bb_index;
                 }
