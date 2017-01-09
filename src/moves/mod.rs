@@ -1,5 +1,7 @@
 mod tests;
 
+use types::*;
+use util::*;
 use constants::*;
 use board::Board;
 
@@ -116,7 +118,6 @@ pub fn diag_squares(pos: Position) -> AttackingRay {
     let diag_length: i8 = RANK_COUNT as i8 - diag_series_index.abs() as i8;
     let diag_piece_ind: i8 = (if diag_series_index > 0 { pos.0 } else { pos.1 }) as i8;
 
-
     ray.attacker_index = diag_piece_ind as u8;
  
     for i in 0..diag_length {
@@ -126,7 +127,7 @@ pub fn diag_squares(pos: Position) -> AttackingRay {
         let pos = Position(f as File, r as Rank);
         ray.squares.push(pos);
     }
-    
+     
     ray
 }
 
@@ -179,12 +180,17 @@ pub fn vertical_squares(pos: Position) -> AttackingRay {
 }
     
 fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> Vec<Move> {
-    
     let mut moves: MoveList = Vec::with_capacity(20);
-    for dest_pos in squares.iter() {
+
+    for (i, dest_pos) in squares.iter().enumerate() {
         let dest_piece = board.mb.get(dest_pos.0, dest_pos.1);
 
-        if dest_piece == NO_PIECE {
+        if &piece.to_position() == dest_pos {
+            //do nothing.
+            //TODO: modify the generate bishop moves function to not return the square with the
+            //attacker itself
+        } else if dest_piece == NO_PIECE {
+            println!("empty: {:?}", dest_pos);
             let mut mv = Move::new();
             mv.origin_piece = piece.0;
             mv.dest_piece = dest_piece;                
@@ -193,7 +199,7 @@ fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> 
             mv.meta_info = QUIET_MOVE;
             moves.push(mv);
         } else {
-             
+            
             let is_opponent_piece = (board.whites_turn() && dest_piece >= B_PAWN && dest_piece <= B_KING)
                 || (board.blacks_turn() && dest_piece >= W_PAWN && dest_piece <= W_KING);
 
@@ -211,20 +217,19 @@ fn moves_from_ray(piece: PiecePosition, squares: &[Position], board: &Board) -> 
         }
     }
 
-    println!("moves_from_ray({:?}, {:?}) -> {:?}", piece, squares, moves);
-
     moves
 }
 
 pub fn generate_bishop_moves(piece: PiecePosition, board: &Board) -> MoveList {
-    println!("GENERATING BISHOP MOVES {:?}", piece);
 
     let mut diag = diag_squares(piece.to_position());
     let mut anti_diag = anti_diag_squares(piece.to_position());
 
     let (pos_diag, neg_diag) = diag.squares.split_at_mut(diag.attacker_index as usize);
+    pos_diag.reverse();
 
     let (pos_anti_diag, neg_anti_diag) = anti_diag.squares.split_at_mut(anti_diag.attacker_index as usize);
+    pos_anti_diag.reverse();
 
     let mut moves = Vec::with_capacity(16);
     moves.append(&mut moves_from_ray(piece, pos_diag, board));
@@ -253,25 +258,3 @@ pub fn generate_rook_moves(piece: PiecePosition, board: &Board) -> MoveList {
 
     moves   
 }
-
-//pub fn generate_knight_moves(piece: &PiecePosition, board: &Board) -> MoveList {
-//    assert_eq!(&piece.0, W_KNIGHT + if board.to_move { 6 } else { 0 });
-//    vec![]     
-//}
-//
-//pub fn generate_pawn_moves(piece: &PiecePosition, board: &Board) -> MoveList {
-//    assert_eq!(&piece.0, W_PAWN + if board.to_move { 6 } else { 0 });
-//    vec![]     
-//}
-//
-//pub fn generate_queen_moves(piece: &PiecePosition, board: &Board) -> MoveList {
-//    assert_eq!(&piece.0, W_QUEEN + if board.to_move { 6 } else { 0 });
-//    vec![]     
-//}
-//
-//pub fn generate_king_moves(piece: &PiecePosition, board: &Board) -> MoveList {
-//    assert_eq!(&piece.0, W_KING + if board.to_move { 6 } else { 0 });
-//    vec![]     
-//}
-
-//pub fn horizontal_squares(pos: &Position) -> AttackingRay {

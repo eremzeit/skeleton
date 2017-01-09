@@ -2,6 +2,8 @@ use constants::*;
 use bitboard::BitBoard;
 use regex::Regex;
 use zobrist;
+use util::*;
+use types::*;
 
 #[derive(Copy)]
 pub struct Mailbox(pub [PieceType; 128]);

@@ -1,4 +1,5 @@
 use constants::*;
+use types::*;
 
 pub const PIECE_HASH_COUNT:usize = 767;
 

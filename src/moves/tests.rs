@@ -7,6 +7,9 @@ use std::collections;
 #[allow(unused_imports)]
 use std::collections::hash_map::RandomState;
 
+#[allow(unused_imports)]
+use util::*;
+
 #[test]        
 fn test_move_debug_fmt() {
     assert_eq!(format!("{:?}", Move {
@@ -156,28 +159,28 @@ fn test_generate_bishop_moves() {
     assert_eq!(moves.iter().all(|m| { m.origin_pos == piece.to_position() }), true);
     assert_eq!(moves.iter().all(|m| { m.origin_piece == W_BISHOP}), true); 
     assert_eq!(moves.iter().all(|m| { m.dest_piece == NO_PIECE || m.dest_piece >= B_PAWN  && m.dest_piece <= B_KING}), true); 
+
+    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
     
-    let moves_set = moves.iter().map(|m| { m.dest_pos }).collect::<collections::HashSet<Position, RandomState>>();
-
-    println!("Bishop moves: {:?}", moves_set);
-
     let correct = vec![
-        //diag
         Position(1,0),
         Position(2,1),
         Position(4,3),
-
-        //anti-diag
         Position(5,0),
         Position(4,1),
         Position(2,3),
-        Position(1,2),
+        Position(1,4),
+
     ];
 
-    let correct_set = correct.iter().map(|p| { p.clone() }).collect::<collections::HashSet<Position, RandomState>>();
-    
-    let diff = moves_set.difference(&correct_set).collect::<Vec<_>>();
-    println!("diff: {:?}", diff);
+    are_positions_eq(&correct, &positions);
 
-    assert_eq!(diff.len(), 0); 
+    //let positions_set = moves.iter().map(|m| { m.dest_pos }).collect::<collections::HashSet<Position, RandomState>>();
+    //let correct_set = correct.iter().map(|p| { p.clone() }).collect::<collections::HashSet<Position, RandomState>>();
+
+    //println!("actual - correct = {:?}", positions_set.difference(&correct_set).collect::<Vec<&Position>>());
+    //println!("correct - actual = {:?}", correct_set.difference(&positions_set).collect::<Vec<&Position>>());
+    //println!("correct <-> actual = {:?}", correct_set.symmetric_difference(&positions_set).collect::<Vec<&Position>>());
+    //
+    //assert_eq!(positions_set.symmetric_difference(&correct_set).count(), 0); 
 }

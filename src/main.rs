@@ -1,6 +1,7 @@
 #[macro_use]
 
 pub mod util;
+pub mod types;
 pub mod constants;
 pub mod board;
 pub mod bitboard;
