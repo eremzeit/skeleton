@@ -31,6 +31,7 @@ pub const B_ROOK: u8 = 0x09;
 pub const B_QUEEN: u8 = 0x0a;
 pub const B_KING: u8 = 0x0b;
 pub const NO_PIECE: u8 = 0x0f;
+pub const OFF_BOARD: u8 = 0x0e;
 
 pub const W_OOO: u8 = 0b0001;
 pub const W_OO: u8 = 0b0010;
@@ -38,13 +39,13 @@ pub const B_OOO: u8 = 0b0100;
 pub const B_OO: u8 = 0b1000;
 pub const CASTLING_DEFAULT: u8 = 0b1111;
 
-pub const NO_EN_PASSANT: u8 = 0b1111;
+pub const NO_EN_PASSANT: File = 0b1111;
 
-pub type Rank = u8;
-pub const RANK_COUNT: u8 = 8;
+pub type Rank = i8;
+pub const RANK_COUNT: i8 = 8;
 
-pub type File = u8;
-pub const FILE_COUNT: u8 = 8;
+pub type File = i8;
+pub const FILE_COUNT: i8 = 8;
 
 // Move meta constants
 //pub const QUIET_MOVE: u8 = 0b0000;
@@ -66,6 +67,19 @@ pub const BISHOP_PROMO_CAPTURE: u8 = 0b1101;
 pub const ROOK_PROMO_CAPTURE: u8 = 0b1110;
 pub const QUEEN_PROMO_CAPTURE: u8 = 0b1111;
 
+pub const WHITE_Y_DIR_SIGN: i8 = 1;
+pub const WHITE_PAWN_STARTING_RANK: i8 = 1;
+pub const WHITE_SINGLE_PUSH_RANK: i8 = 2;
+pub const WHITE_DOUBLE_PUSH_RANK: i8 = 3;
+pub const WHITE_BACK_RANK: i8 = 0;
+pub const WHITE_EP_CAP_RANK: i8 = 4;
+    
+pub const BLACK_Y_DIR_SIGN: i8 = -1;
+pub const BLACK_PAWN_STARTING_RANK: i8 = 6;
+pub const BLACK_SINGLE_PUSH_RANK: i8 = 5;
+pub const BLACK_DOUBLE_PUSH_RANK: i8 = 4;
+pub const BLACK_BACK_RANK: i8 = 7;
+pub const BLACK_EP_CAP_RANK: i8 = 3;
 
 pub const START_FEN: &'static str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 pub const INTERESTING_FEN: &'static str = "r2qk2r/pp3pbp/3p1np1/8/2PBPQb1/8/PP4PP/RN2KB1R b KQkq - 0 12";

@@ -7,23 +7,43 @@ pub fn is_white(piece: PieceType) -> bool {
     piece >= W_PAWN && piece <= W_KING
 }
 
+pub fn color_of(piece: PieceType) -> Color {
+    if is_white(piece) { WHITE } else { BLACK }
+}
+
 pub fn opposite_color(color: Color) -> Color {
-    if color == WHITE {
-        BLACK
+    1 - color
+}
+
+pub fn to_white(piece: PieceType) -> PieceType {
+    if piece >= W_PAWN && piece <= W_KING {
+        piece 
     } else {
-        WHITE 
+        opposite_color_piece_type(piece)
     }
+}
+
+pub fn opposite_color_piece_type(piece_type: PieceType) -> PieceType {
+    if piece_type >= W_PAWN && piece_type <= W_KING {
+        piece_type + PIECE_TYPE_COLOR_OFFSET
+    } else if piece_type >= B_PAWN && piece_type <= B_KING {
+        piece_type - PIECE_TYPE_COLOR_OFFSET
+    } else {
+        NO_PIECE
+    }
+}
+
+pub fn is_occupied_and_enemy(piece1: PieceType, piece2: PieceType) -> bool {
+    piece1 != NO_PIECE && piece2 != NO_PIECE && !is_same_color(piece1, piece2)
 }
 
 pub fn is_same_color(piece1: PieceType, piece2: PieceType) -> bool {
     (piece1 >= W_PAWN && piece1 <= W_KING) && (piece2 >= W_PAWN && piece2 <= W_KING)
         || (piece1 >= B_PAWN && piece1 <= B_KING) && (piece2 >= B_PAWN && piece2 <= B_KING)
-        || (piece1 == NO_PIECE && piece2 == NO_PIECE)
 }
 
 pub fn assert_position_list_eq(positions1: &Vec<Position>, positions2: &Vec<Position>) {
     if cfg!(debug_assertions) {
-
         let diff = position_list_diff(positions1, positions2);
         if diff.len() != 0 {
             println!("Position list diff: {:?}", diff);
@@ -127,7 +147,8 @@ pub fn ranks_desc() -> RankIndexIterator {
     RankIndexIterator::ranks_desc()
 }
 
-pub fn char_to_piece_type(fen_char: &char) -> u8{
+//TODO: could this instead return a PieceType
+pub fn char_to_piece_type(fen_char: &char) -> u8 {
     match fen_char {
         &'P' => W_PAWN,
         &'N' => W_KNIGHT,
@@ -145,6 +166,12 @@ pub fn char_to_piece_type(fen_char: &char) -> u8{
     }
 }
 
+pub fn piece_type_to_str(piece_type: PieceType) -> String {
+    let mut s = String::new();
+    s.push(piece_type_to_char(piece_type));
+    s
+}
+
 pub fn piece_type_to_char(piece_type: PieceType) -> char {
     match piece_type {
         W_PAWN => 'P',
@@ -159,12 +186,16 @@ pub fn piece_type_to_char(piece_type: PieceType) -> char {
         B_ROOK => 'r',
         B_QUEEN => 'q',
         B_KING => 'k',
-        _ => '-'
+        NO_PIECE => ' ',
+        _ => '?'
     }
 }
 
-pub fn file_to_char(file_offset: u8) -> &'static str {
+pub fn file_to_char(file_offset: File) -> &'static str {
+    //assert!(file_offset >= 0 && file_offset < FILE_COUNT);
+
     let c: &'static str = match file_offset {
+        -1 => "z",
         0 => "a",
         1 => "b",
         2 => "c",
@@ -173,7 +204,8 @@ pub fn file_to_char(file_offset: u8) -> &'static str {
         5 => "f",
         6 => "g",
         7 => "h",
-        _ => "-"
+        8 => "i",
+        _ => "x"
     };
 
     c
@@ -269,6 +301,12 @@ mod tests {
             &vec![Position(2,1), Position(0,1)]
         ));
     }
+    
+    #[test]
+    fn test_opposite_color_piece_type() {
+        assert_eq!(opposite_color_piece_type(W_BISHOP), B_BISHOP);
+        assert_eq!(opposite_color_piece_type(B_KING), W_KING);
+        assert_eq!(opposite_color_piece_type(NO_PIECE), NO_PIECE);
+    }
 }
-
 

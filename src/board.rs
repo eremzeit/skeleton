@@ -1,5 +1,6 @@
 use constants::*;
 use bitboard::BitBoard;
+use std::boxed::Box;
 use regex::Regex;
 use zobrist;
 use util::*;
@@ -14,14 +15,39 @@ impl Clone for Mailbox { fn clone(&self) -> Self { *self } }
 pub const MAILBOX_INDEX_MASK: u8 = 0x88;
 
 impl Mailbox {
-    pub fn get(&self, file: u8, rank: u8) -> PieceType {
-        self.0[((rank << 4) + file) as usize]
+    pub fn empty() -> Mailbox {
+        let mut mb = Mailbox([OFF_BOARD; 128]);
+
+        for r in ranks_desc() {
+            for f in files_asc() {
+                mb.set(f, r, NO_PIECE);
+            }
+        }
+
+        mb
     }
     
-    pub fn set(&mut self, file: u8, rank: u8, piece:PieceType) {
+
+    // TODO: this is slow.  if we want to be able to handle off-board queries
+    // while still being performant, we should change the underlying data-structure.
+    // We could also move away from using file and rank separately.  two seperate loops means
+    // we're bounds checking more often than necessary.
+    pub fn get(&self, file: File, rank: Rank) -> PieceType {
+        assert!(file >= -2 && file < FILE_COUNT + 2);    
+        assert!(rank >= -2 && rank < RANK_COUNT + 2);
+
+        if file >= 0 && file < FILE_COUNT && rank >= 0 && rank < RANK_COUNT {
+            let ind: u8 = ((rank as u8) << 4) + (file as u8);
+            assert_eq!(ind & MAILBOX_INDEX_MASK, 0);
+            return self.0[((rank << 4) + file) as usize]
+        } else {
+            OFF_BOARD     
+        }
+    }
+    
+    pub fn set(&mut self, file: File, rank: Rank, piece:PieceType) {
         self.0[((rank << 4) + file) as usize] = piece
     }
-
 }
 
 #[derive(Copy, Clone)]
@@ -31,14 +57,15 @@ pub struct Board {
     pub to_move: u8,
     pub zhash: u64,
     pub castling: u8,
-    pub en_passant: u8,
+    pub en_passant: File,
     pub halfmove_counter: u8,
     pub fullmove_counter: u8,
 }
 
 impl Board {
     pub fn new() -> Board {
-        let mb = Mailbox([NO_PIECE; 128]);
+        let mb = Mailbox::empty();
+
         let bb = BitBoard::create_from(&mb);
 
         let board = Board { 
@@ -62,9 +89,8 @@ impl Board {
     pub fn blacks_turn(&self) -> bool {
         self.to_move == BLACK
     }
-
+    
     //    A B C D E F G H
-
     // 8   - - - - - - - -
     // 7   - - - - - - - -
     // 6   - - - - - - - -
@@ -73,7 +99,6 @@ impl Board {
     // 3   - - - - - - - -
     // 2   - - - - - - - -
     // 1   - - - - - - - -
-    
     pub fn print_board(&self) {
         let mut s: String = String::new();
         s.push_str("   A B C D E F G H\n");
@@ -94,8 +119,49 @@ impl Board {
             }
 
             s.push_str("\n");
+            //println!("{}", s);
+        }
 
-            println!("{}", s);
+        println!("{}", s);
+    }
+
+    //    A B C D E F G H
+    // 8   - - - - - - - -
+    // 7   - - - - - - - -
+    // 6   - - - - - - - -
+    // 5   - - - - - - - -
+    // 4   - - - - - - - -
+    // 3   - - - - - - - -
+    // 2   - - - - - - - -
+    // 1   - - - - - - - -
+    pub fn print_board_with_positions(&self, positions: &Vec<Position>) {
+
+        let mut s: String = String::new();
+        s.push_str("   A B C D E F G H\n");
+        s.push_str("                  \n");
+        
+        for r in ranks_desc() {
+            s.push_str(&format!("{}  ", r + 1));
+            
+            for f in files_asc() {
+                let piece_type = self.mb.get(f, r);
+                let is_target = positions.iter().any(|&p| (p) == Position(f,r));
+                let mut piece_str: String;
+
+                if is_target {
+                    piece_str = match piece_type {
+                        NO_PIECE => { "-".to_string() },
+                        _ => { format!("{}", piece_type_to_char(piece_type)) }
+                    };
+                } else {
+                  piece_str = "X".to_string();
+                };
+                    
+                s.push_str(&format!("{} ", &piece_str));
+            }
+
+            s.push_str("\n");
+            //println!("{}", s);
         }
 
         println!("{}", s);
@@ -107,6 +173,13 @@ impl Board {
     
     pub fn get_piece_position(&self, file: File, rank: Rank) -> PiecePosition {
        PiecePosition(self.mb.get(file, rank), file, rank)
+    }
+    
+
+    // is this correct?
+    pub fn get_piece_by_pgn(&self, pgn: &str) -> PiecePosition {
+        let p = PiecePosition::from_pgn(pgn);
+        PiecePosition(self.mb.get(p.1, p.2), p.1, p.2)
     }
     
     pub fn from_fen(fen: &str) -> Self {
@@ -152,7 +225,7 @@ impl Board {
 
         if number_match.is_match(en_passent_str) {
             let file_char = &number_match.replace(en_passent_str, "").into_owned();
-            let ep_file = char_to_file(file_char);
+            let ep_file: File = char_to_file(file_char);
             board.en_passant = ep_file;
         } else {
             board.en_passant = NO_EN_PASSANT;
@@ -168,6 +241,26 @@ impl Board {
         board
     }
     
+    pub fn get_pieces_iter(&self) -> Box<Iterator<Item=PiecePosition>> {
+        let r: Box<Iterator<Item=PiecePosition>> = Box::new(self.get_pieces().into_iter());
+
+        r
+    }
+    
+    pub fn get_first_piece(&self, piece_type: PieceType) -> Option<PiecePosition> {
+        for f in 0..FILE_COUNT {
+            for r in 0..RANK_COUNT {
+                let _piece_type = self.mb.get(f, r);
+                
+                if _piece_type == piece_type {
+                   return Some(PiecePosition(piece_type, f, r)); 
+                }
+            }
+        }
+
+        None 
+    }
+
     pub fn get_pieces(&self) -> PieceList {
         let mut pieces: PieceList = vec![];
 
@@ -220,21 +313,17 @@ fn parse_fen_pieces(piece_str: &str) -> PieceList {
 
     let mut pieces: PieceList = vec![];
 
-    println!("{}", piece_str);
-
     for (rank_pos, rank_str) in ranks.into_iter().enumerate() {
-        println!("rank({}): {}", rank_pos, rank_str);
-        let r: u32 = 7 - rank_pos as u32;
-        let mut f: u32 = 0;
+        let r: Rank = (7 - rank_pos as Rank) as Rank;
+        let mut f: File = 0;
             
         for c in rank_str.chars() {
             //println!("char at {}: {}", f, c);
             if c.is_digit(10) {
-                let digit = c.to_digit(10).expect("invalid number in fen piece list");
+                let digit: File = c.to_digit(10).expect("invalid number in fen piece list") as File;
                 f = f + digit;
             } else if c.is_alphanumeric() {
-                let piece_position = PiecePosition(char_to_piece_type(&c), f as u8, r as u8);
-                println!("new piece: {:?}", piece_position);
+                let piece_position = PiecePosition(char_to_piece_type(&c), f as File, r as Rank);
                 pieces.push(piece_position);
                 f = f + 1;
             } else {
@@ -295,7 +384,6 @@ mod tests {
         #[test]
         fn get() {
             let mb: Mailbox = Mailbox([5; 128]);
-            assert_eq!(mb.get(0,0), 5);
 
             for f in 0..FILE_COUNT {
                 for r in 0..RANK_COUNT {
@@ -303,7 +391,7 @@ mod tests {
                 }
             }
         }
-        
+
         #[test]
         fn set() {
             let mut mb: Mailbox = Mailbox([5; 128]);
@@ -311,12 +399,12 @@ mod tests {
             assert_eq!(mb.get(0,0), 10);
         }
     }
-    
+
     #[test]
     fn parse_fen_pieces_default() {
         let pieces = parse_fen_pieces("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
         assert_eq!(pieces.len(), 32);
-        
+
         let s = piece_list_to_string(&pieces);
         assert_eq!(s, "[ra8, nb8, bc8, qd8, ke8, bf8, ng8, rh8, pa7, pb7, pc7, pd7, pe7, pf7, pg7, ph7, Pa2, Pb2, Pc2, Pd2, Pe2, Pf2, Pg2, Ph2, Ra1, Nb1, Bc1, Qd1, Ke1, Bf1, Ng1, Rh1]");
     }

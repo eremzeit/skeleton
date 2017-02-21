@@ -10,6 +10,8 @@ use std::collections::hash_map::RandomState;
 #[allow(unused_imports)]
 use util::*;
 
+//use std::iter::Chain;
+
 const TEST_FEN1: &'static str = "r1bk1b1K/pp2p1p1/N1p1Pq1B/2B1rp2/Rn1P1PQP/1p1n1R2/P1P1P1P1/1N6 w - - 6 1";
 const BISHOP_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/3B4/8/K7 w - - 0 1";
 const ROOK_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/8/5r1p/K7 b - - 0 1";
@@ -161,15 +163,18 @@ fn test_generate_bishop_moves() {
     
     let piece = board.get_piece_position(3, 2);
     assert_eq!(piece.0, W_BISHOP);
-    let moves = generate_bishop_moves(piece, &board);
+    let mut moves = generate_bishop_moves(piece, &board, false).collect::<Vec<Move>>();
     
     assert_eq!(moves.iter().all(|m| { m.origin_pos == piece.to_position() }), true);
     assert_eq!(moves.iter().all(|m| { m.origin_piece == W_BISHOP}), true); 
     assert_eq!(moves.iter().all(|m| { m.dest_piece == NO_PIECE || m.dest_piece >= B_PAWN  && m.dest_piece <= B_KING}), true); 
-
-    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
     
-    let correct = Position::from_pgn("b1, c2, e4, f1, e2, c4, b5");
+    let positions = moves.into_iter().map(|m| { 
+        println!("dest_pos: {:?}", m.dest_pos);
+        m.dest_pos 
+    }).collect::<Vec<Position>>();
+    
+    let correct = Position::from_pgn_list("b1, c2, e4, f1, e2, c4, b5");
     
     assert!(are_positions_eq(&correct, &positions));
 }
@@ -180,15 +185,14 @@ fn test_generate_rooks_moves() {
     board.print_board();
     
     let piece = board.get_piece_position(5, 1);
-    let moves = generate_rook_moves(piece, &board);
-    
+    let mut moves = generate_rook_moves(piece, &board, false).collect::<Vec<Move>>();
+
     assert!(moves.iter().all(|m| { m.origin_pos == piece.to_position() }));
     assert!(moves.iter().all(|m| { m.origin_piece == B_ROOK})); 
     assert!(moves.iter().all(|m| { m.dest_piece == NO_PIECE || !is_same_color(piece.0, m.dest_piece) })); 
-
-    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
-
-    let correct = Position::from_pgn("a2, b2, c2, d2, e2, g2, f1, f3, f4, f5");
+    
+    let positions = moves.into_iter().map(|m| m.dest_pos).collect::<Vec<Position>>();
+    let correct = Position::from_pgn_list("a2, b2, c2, d2, e2, g2, f1, f3, f4, f5");
 
     assert!(positions.len() > 0);
     assert!(are_positions_eq(&correct, &positions));
@@ -200,23 +204,167 @@ fn test_generate_queen_moves() {
     board.print_board();
 
     let piece = board.get_piece_position(5, 1);
-    let moves = generate_queen_moves(piece, &board);
-    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
-    let correct = Position::from_pgn("a2, b2, c2, d2, e2, g2, h2, f1, f3, f4, e3, d4, c5, b6, a7, e1, g1, g3, h4");
-    assert_position_list_eq(&positions, &correct);
+    let mut moves = generate_queen_moves(piece, &board, false);
+    let positions = moves.map(|m| { m.dest_pos }).collect::<Vec<Position>>();
+    let correct = Position::from_pgn_list("a2, b2, c2, d2, e2, g2, h2, f1, f3, f4, e3, d4, c5, b6, a7, e1, g1, g3, h4");
+    assert!(are_positions_eq(&positions, &correct));
 }
 
 #[test]
-fn test_generate_king_moves() {
+fn test_generate_pawn_moves() {
+    let board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+    board.print_board();
+
+    // there's an EP from e5-f6
+    let pawn = board.get_piece_by_pgn("e5"); 
+    let moves = generate_pawn_moves(pawn, &board, true, false);
+
+    let diff = move_list_diff(&moves.collect::<Vec<_>>(), &vec![
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(4,4),
+           dest_pos: Position(5,5),
+           meta_info: EP_CAPTURE
+        },
+
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: B_PAWN,
+           origin_pos: Position(4,4),
+           dest_pos: Position(3,5),
+           meta_info: CAPTURE
+        },
+        
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(4,4),
+           dest_pos: Position(4,5),
+           meta_info: QUIET_MOVE
+        }
+    ]);
+
+    assert!(diff.len() == 0);
+}
+
+#[test]
+fn test_generate_pawn_moves_double_push() {
+    let board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+    board.print_board();
+
+    // there's an EP from e5-f6
+    let pawn = board.get_piece_by_pgn("a2"); 
+    let moves = generate_pawn_moves(pawn, &board, true, false);
+
+    let diff = move_list_diff(&moves.collect::<Vec<_>>(), &vec![
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,1),
+           dest_pos: Position(0,3),
+           meta_info: DOUBLE_PAWN_PUSH
+        },
+        
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,1),
+           dest_pos: Position(0,2),
+           meta_info: QUIET_MOVE
+        }
+    ]);
+
+    assert!(diff.len() == 0);
+}
+
+#[test]
+fn test_generate_pawn_moves_black() {
+    let board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+    board.print_board();
+
+    // there's an EP from e5-f6
+    let pawn = board.get_piece_by_pgn("h7"); 
+    let moves = generate_pawn_moves(pawn, &board, true, false);
+
+    let diff = move_list_diff(&moves.collect::<Vec<_>>(), &vec![
+        Move {
+           origin_piece: B_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(7,6),
+           dest_pos: Position(7,5),
+           meta_info: QUIET_MOVE
+        }
+    ]);
+
+    assert!(diff.len() == 0);
+}
+
+#[test]
+fn test_generate_pawn_moves_attacks_only() {
+    let board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+    board.print_board();
+
+    // there's an EP from e5-f6
+    let pawn = board.get_piece_by_pgn("d6"); 
+    let moves = generate_pawn_moves(pawn, &board, false, true);
+
+    let diff = move_list_diff(&moves.collect::<Vec<_>>(), &vec![
+        Move {
+           origin_piece: B_PAWN,
+           dest_piece: W_PAWN,
+           origin_pos: Position(3,5),
+           dest_pos: Position(4,4),
+           meta_info: CAPTURE
+        },
+        Move {
+           origin_piece: B_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(3,5),
+           dest_pos: Position(2,4),
+           meta_info: QUIET_MOVE 
+        }
+    ]);
+
+    assert!(diff.len() == 0);
+}
+
+#[test]
+fn test_generate_king_moves_main() {
+    // A B C D E F G H
+    // 
+    // 8  - - - - - - - k
+    // 7  - - - - - - - -
+    // 6  - - - - - - - -
+    // 5  - p - - - P - -
+    // 4  - - - - - - - -
+    // 3  - P p - r - - -
+    // 2  - - K - b - - p
+    // 1  - - - - - - - -
+
     let board = Board::from_fen(KING_TEST_FEN);
     board.print_board();
 
-    let piece = board.get_piece_position(5, 1);
-    let moves = generate_king_moves(piece, &board);
-    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
-    let correct = Position::from_pgn("c1, b1");
+    //TODO: test the case of include_illegals = true
+    let piece = board.get_piece_by_pgn("c2");
+    let moves = generate_king_moves(piece, &board, false);
+    let positions = moves.map(|m| { m.dest_pos }).collect::<Vec<Position>>();
+    let correct = Position::from_pgn_list("c1, b1");
     
-    assert_position_list_eq(&positions, &correct);
+    assert!(are_positions_eq(&positions, &correct));
+}
+
+#[test]
+fn test_generate_king_moves_include_as_attacks() {
+    let board = Board::from_fen(KING_TEST_FEN);
+    board.print_board();
+
+    let piece = board.get_piece_by_pgn("c2");
+    let moves = generate_king_moves(piece, &board, true);
+    let positions = moves.map(|m| { m.dest_pos }).collect::<Vec<Position>>();
+    let correct = Position::from_pgn_list("c3, d1, d2, d3, c1, b1, b2, b3");
+    
+    assert!(are_positions_eq(&positions, &correct));
 }
 
 #[test]
@@ -225,11 +373,109 @@ fn test_generate_knight_moves() {
     board.print_board();
 
     let piece = board.get_piece_position(4, 2);
-    let moves = generate_knight_moves(piece, &board);
-    let positions = moves.iter().map(|m| { m.dest_pos }).collect::<Vec<Position>>();
+    let moves = generate_knight_moves(piece, &board, false);
+    let positions = moves.map(|m: Move| { m.dest_pos }).collect::<Vec<Position>>();
 
-    let correct = Position::from_pgn("f5, g4, g2, d1, f1, c2, c4");
+    let correct = Position::from_pgn_list("f5, g4, g2, d1, f1, c2, c4");
     
-    assert_position_list_eq(&positions, &correct);
+    assert!(are_positions_eq(&positions, &correct));
 }
 
+#[test]
+fn test_is_pos_attacked_2() {
+    let board = Board::from_fen(INTERESTING_FEN);
+    //board.print_board();
+}
+
+#[test]
+fn test_is_pos_attacked() {
+    let board = Board::from_fen(INTERESTING_FEN);
+    board.print_board();
+      
+    //      A B C D E F G H
+    //   8  r - - q k - - r
+    //   7  p p - - - p b p
+    //   6  - - - p - n p -
+    //   5  - - - - - - - -
+    //   4  - - P B P Q b -
+    //   3  - - - - - - - -
+    //   2  P P - - - - P P
+    //   1  R N - - K B - R
+    
+    let attacks: [[bool; 2]; 24] =  [
+        // 1
+        [false, false],
+        [true, false],
+        [true, false],
+        [true, true],
+        [false, false],
+        [true, false],
+        [true, false],
+        [false, false],
+
+        //2
+        [true, false], //a
+        [true, false], //b
+        [false, false], //c
+        [true, false], //d
+        [true, true], //e
+        [true, false], //f
+        [true, false], //g
+        [true, false], //h
+        
+        //3
+        [true, false], //a
+        [true, false], //b
+        [true, false], //c
+        [true, false], //d
+        [true, false], //e
+        [true, true], //f
+        [true, false], //g
+        [true, true], //h
+    ];
+
+    for i in 0..24 {
+        let is_attacked = attacks[i];
+        let pos = Position((i as File) % 8, (i / 8) as Rank);
+        
+        let correct = (
+            is_pos_attacked_by(&board, pos, WHITE) == is_attacked[0]
+            && is_pos_attacked_by(&board, pos, BLACK) == is_attacked[1]
+        ); 
+
+        if !correct {
+            println!("failed at: {:?}", pos);
+            assert!(correct)
+        }
+    }
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g7"), WHITE));
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g7"), BLACK));
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g6"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("g6"), BLACK));
+
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("f6"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("f6"), BLACK));
+    
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a2"), WHITE));
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a2"), BLACK));
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a8"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a8"), BLACK));
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("b8"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("b8"), BLACK));
+
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a7"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a7"), BLACK));
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a6"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a6"), BLACK));
+    
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a6"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("a6"), BLACK));
+
+    assert!(!is_pos_attacked_by(&board, Position::from_pgn("f7"), WHITE));
+    assert!(is_pos_attacked_by(&board, Position::from_pgn("f7"), BLACK));
+}

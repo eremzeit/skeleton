@@ -5,7 +5,6 @@ use constants::*;
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct BitBoard(pub [u64; 0x10]);
 
-
 pub const ALL_WHITE: u8 = 0x0c;
 pub const ALL_BLACK: u8 = 0x0d;
 pub const ALL: u8 = 0x0e;

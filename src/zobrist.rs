@@ -192,7 +192,7 @@ pub const HASH_EN_PASSANT_FILES: [u64; 8] = [
 //    //            RANDOM_GEN = Some(XorShiftRng::from_seed([1, 2, 3, 4]));
 //}
 
-pub fn get_board_hash(pieces: &PieceList, is_white_turn: u8, castling: u8, en_passant: u8) -> u64 {
+pub fn get_board_hash(pieces: &PieceList, is_white_turn: u8, castling: u8, en_passant: File) -> u64 {
     let mut h: u64 = 0;
     
     for piece in pieces {
@@ -251,7 +251,7 @@ pub fn get_castling_hash(castling: u8) -> u64 {
     h
 }
 
-pub fn get_en_passant_hash(en_passant: u8) -> u64 {
+pub fn get_en_passant_hash(en_passant: File) -> u64 {
     if en_passant != NO_EN_PASSANT {
         HASH_EN_PASSANT_FILES[en_passant as usize]     
     } else {
