@@ -27,6 +27,9 @@ impl Mailbox {
         mb
     }
     
+    pub fn getp(&self, pos: Position) -> PieceType {
+        self.get(pos.0, pos.1)
+    }
 
     // TODO: this is slow.  if we want to be able to handle off-board queries
     // while still being performant, we should change the underlying data-structure.
@@ -48,13 +51,22 @@ impl Mailbox {
     pub fn set(&mut self, file: File, rank: Rank, piece:PieceType) {
         self.0[((rank << 4) + file) as usize] = piece
     }
+
+    pub fn move_piece(&mut self, orig_pos: Position, dest_pos: Position) {
+        assert!(self.get(orig_pos.0, orig_pos.1) != NO_PIECE);
+
+        let piece = self.get(orig_pos.0, orig_pos.1);
+        self.set(dest_pos.0, dest_pos.1, piece);
+        self.set(orig_pos.0, orig_pos.1, NO_PIECE);
+    }
+
 }
 
 #[derive(Copy, Clone)]
 pub struct Board {
     pub bb: BitBoard,
     pub mb: Mailbox,
-    pub to_move: u8,
+    pub to_move: Color,
     pub zhash: u64,
     pub castling: u8,
     pub en_passant: File,
@@ -73,10 +85,10 @@ impl Board {
             mb: mb,
             to_move: WHITE,
             zhash: 0,
-            castling: 0,
-            en_passant: 0,
+            castling: CASTLING_DEFAULT,
+            en_passant: NO_EN_PASSANT,
             halfmove_counter: 0,
-            fullmove_counter: 0
+            fullmove_counter: 1
         };
 
         board
@@ -277,7 +289,7 @@ impl Board {
         pieces
     }
     
-    fn normalize(&mut self) {
+    pub fn normalize(&mut self) {
         self.bb = BitBoard::create_from(&self.mb);
         self.zhash = self.to_hash();
     }

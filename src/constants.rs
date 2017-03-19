@@ -81,6 +81,10 @@ pub const BLACK_DOUBLE_PUSH_RANK: i8 = 4;
 pub const BLACK_BACK_RANK: i8 = 7;
 pub const BLACK_EP_CAP_RANK: i8 = 3;
 
+// ie. the file that the king will end up on
+pub const QUEEN_SIDE_CASTLE_FILE: File = 2;
+pub const KING_SIDE_CASTLE_FILE: File = 6;
+
 pub const START_FEN: &'static str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 pub const INTERESTING_FEN: &'static str = "r2qk2r/pp3pbp/3p1np1/8/2PBPQb1/8/PP4PP/RN2KB1R b KQkq - 0 12";
 

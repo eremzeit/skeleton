@@ -1,6 +1,7 @@
 mod tests;
 mod types;
 mod castling;
+mod make_move;
 
 use self::types::*;
 use types::*;
@@ -9,6 +10,7 @@ use constants::*;
 use board::Board;
 use std::iter;
 use std::cmp;
+use self::castling::*;
 
 // maybe in the future we could convert all these generator 
 // functions to return boxed iterators.
@@ -36,7 +38,7 @@ use std::cmp;
 // In the mean time, we can just try to return MoveIters whereever possible and see where that
 // leads us.  Even in that configuration we still could achieve early termination via the use of
 // chaining operations.  
-// 
+
 
 pub fn diag_squares(pos: Position) -> AttackingRay { 
     let mut ray = AttackingRay::new(); 
@@ -258,7 +260,7 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
     let color = color_of(piece.0);
     assert!(to_white(piece.0) == W_KING);
 
-    let moves = KING_OFFSETS.iter().filter_map(|offset| {
+    let mut moves = KING_OFFSETS.iter().filter_map(|offset| {
         let f: File = piece.1 as i8 + offset[0];
         let r: Rank = piece.2 as i8 + offset[1];
         let other_piece = board.mb.get(f, r);
@@ -269,16 +271,17 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
         } else {
             //println!("Testing: {:?} + {:?} => {}, {}", piece.to_position(), offset, f, r);
             let other_piece = board.mb.get(f as File, r as Rank);
-            
             let mut can_attack = (
                 other_piece != OFF_BOARD
-                && as_attacks || (
+                && (as_attacks || (
                     !is_same_color(piece.0, other_piece)
                     && !is_pos_attacked_by(board, Position(f, r), opposite_color(color))
-                )
+                ))
             );
 
             if can_attack {
+                
+
                 Some(Move {
                     origin_piece: piece.0,
                     origin_pos: Position::new(piece.1, piece.2),
@@ -291,6 +294,12 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
             }
         }
     }).collect::<Vec<Move>>();
+    
+    if !as_attacks {
+        let mut castling_moves = generate_castling_moves(piece, board).collect::<Vec<Move>>();
+        moves.append(&mut castling_moves); 
+    }
+
 
     MovesIter::from_vec(moves)
 }
@@ -321,20 +330,16 @@ pub fn get_piece_attacks(piece: PiecePosition, board: &Board) -> MovesIter {
 }
 
 pub fn is_pos_attacked_by(board: &Board, pos: Position, color: Color) -> bool {
-    println!("is_pos_attacked_by: {:?}", pos);
     // for each piece, does it attack this square
-    let r = board.get_pieces_iter().find(|piece_pos| {
+    board.get_pieces_iter().find(|piece_pos| {
         color_of(piece_pos.0) == color && does_piece_attack(*piece_pos, pos, board)
-    }).is_some();
-    
-    println!("is pos attacked: {:?} by color({}).... {}", pos, color, r);
-    r
+    }).is_some()
 }
 
 pub fn get_attackers(board: &Board, pos: Position) -> Vec<PiecePosition> {
     // logically:  query pieces p where get_attacks(p) has_member sq(e4)
     //
-    // or iteratorate through all pieces, and filter
+    // or iterate through all pieces, and filter
     // or check rays for potential attackers
      
     // diags
@@ -416,13 +421,14 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
     }
 
     if board.en_passant != NO_EN_PASSANT && include_ep && !attacks_only{
-        let file_offset: i8 = (piece.1 as i8 - board.en_passant as i8) as i8;
+        let file_offset: File = board.en_passant - piece.1;
+
         if piece.2 == ep_cap_rank && file_offset.abs() == 1 {
             let m = Move {
                 origin_piece: piece.0,
                 origin_pos: piece.to_position(),
                 dest_piece: NO_PIECE,
-                dest_pos: Position((piece.1 - file_offset) as i8, (piece.2 as i8 + y_dir_sign) as i8),
+                dest_pos: Position((piece.1 + file_offset) as i8, (piece.2 as i8 + y_dir_sign) as i8),
                 meta_info: EP_CAPTURE
             };
 

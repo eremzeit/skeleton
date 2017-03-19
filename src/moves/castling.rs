@@ -1,3 +1,4 @@
+
 use self::types::*;
 use types::*;
 use util::*;
@@ -18,8 +19,8 @@ pub fn generate_castling_moves(piece: PiecePosition, board: &Board) -> MovesIter
 
     if piece.is_white() {
         if board.castling & W_OO > 0
-                && board.mb.get(5, WHITE_BACK_RANK) == NO_PIECE
-                && board.mb.get(6, WHITE_BACK_RANK) == NO_PIECE
+                && board.mb.get(KING_SIDE_CASTLE_FILE - 1, WHITE_BACK_RANK) == NO_PIECE
+                && board.mb.get(KING_SIDE_CASTLE_FILE, WHITE_BACK_RANK) == NO_PIECE
                 && !is_pos_attacked_by(board, Position(4, WHITE_BACK_RANK), BLACK)
                 && !is_pos_attacked_by(board, Position(5, WHITE_BACK_RANK), BLACK) 
                 && !is_pos_attacked_by(board, Position(6, WHITE_BACK_RANK), BLACK) {
@@ -28,58 +29,59 @@ pub fn generate_castling_moves(piece: PiecePosition, board: &Board) -> MovesIter
                 origin_piece: piece.0,
                 origin_pos: piece.to_position(),
                 dest_piece: NO_PIECE,
-                dest_pos: Position(6, WHITE_BACK_RANK),
+                dest_pos: Position(KING_SIDE_CASTLE_FILE, WHITE_BACK_RANK),
                 meta_info: KING_CASTLE 
             });
         }
         
         if board.castling & W_OOO > 0
-                && board.mb.get(3, WHITE_BACK_RANK) == NO_PIECE
-                && board.mb.get(2, WHITE_BACK_RANK) == NO_PIECE
-                && board.mb.get(1, BLACK_BACK_RANK) == NO_PIECE
-                && !is_pos_attacked_by(board, Position(2, WHITE_BACK_RANK), BLACK) 
-                && !is_pos_attacked_by(board, Position(3, WHITE_BACK_RANK), BLACK)
-                && !is_pos_attacked_by(board, Position(4, WHITE_BACK_RANK), BLACK) {
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE + 1, WHITE_BACK_RANK) == NO_PIECE
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE, WHITE_BACK_RANK) == NO_PIECE
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE - 1, BLACK_BACK_RANK) == NO_PIECE
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE, WHITE_BACK_RANK), BLACK) 
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE + 1, WHITE_BACK_RANK), BLACK)
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE + 2, WHITE_BACK_RANK), BLACK) {
 
             moves.push(Move {
                 origin_piece: piece.0,
                 origin_pos: piece.to_position(),
                 dest_piece: NO_PIECE,
-                dest_pos: Position(2, WHITE_BACK_RANK),
+                dest_pos: Position(QUEEN_SIDE_CASTLE_FILE, WHITE_BACK_RANK),
                 meta_info: QUEEN_CASTLE 
             });
         }
         
     } else {
         if board.castling & B_OO > 0
-                && board.mb.get(5, BLACK_BACK_RANK) == NO_PIECE
-                && board.mb.get(6, BLACK_BACK_RANK) == NO_PIECE
-                && !is_pos_attacked_by(board, Position(4, BLACK_BACK_RANK), WHITE)
-                && !is_pos_attacked_by(board, Position(5, BLACK_BACK_RANK), WHITE) 
-                && !is_pos_attacked_by(board, Position(6, BLACK_BACK_RANK), WHITE) {
+                && board.mb.get(KING_SIDE_CASTLE_FILE - 1, BLACK_BACK_RANK) == NO_PIECE
+                && board.mb.get(KING_SIDE_CASTLE_FILE, BLACK_BACK_RANK) == NO_PIECE
+                && !is_pos_attacked_by(board, Position(KING_SIDE_CASTLE_FILE - 2, BLACK_BACK_RANK), WHITE)
+                && !is_pos_attacked_by(board, Position(KING_SIDE_CASTLE_FILE - 1, BLACK_BACK_RANK), WHITE) 
+                && !is_pos_attacked_by(board, Position(KING_SIDE_CASTLE_FILE, BLACK_BACK_RANK), WHITE) {
 
             moves.push(Move {
                 origin_piece: piece.0,
                 origin_pos: piece.to_position(),
                 dest_piece: NO_PIECE,
-                dest_pos: Position(6, BLACK_BACK_RANK),
+                dest_pos: Position(KING_SIDE_CASTLE_FILE, BLACK_BACK_RANK),
                 meta_info: KING_CASTLE 
             });
         }
         
         if board.castling & B_OOO > 0
-                && board.mb.get(3, BLACK_BACK_RANK) == NO_PIECE
-                && board.mb.get(3, BLACK_BACK_RANK) == NO_PIECE
-                && board.mb.get(1, BLACK_BACK_RANK) == NO_PIECE
-                && !is_pos_attacked_by(board, Position(2, BLACK_BACK_RANK), WHITE) 
-                && !is_pos_attacked_by(board, Position(3, BLACK_BACK_RANK), WHITE)
-                && !is_pos_attacked_by(board, Position(4, BLACK_BACK_RANK), WHITE) {
-
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE - 1, BLACK_BACK_RANK) == NO_PIECE
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE, BLACK_BACK_RANK) == NO_PIECE 
+                && board.mb.get(QUEEN_SIDE_CASTLE_FILE + 1, BLACK_BACK_RANK) == NO_PIECE
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE, BLACK_BACK_RANK), WHITE) 
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE + 1, BLACK_BACK_RANK), WHITE)
+                && !is_pos_attacked_by(board, Position(QUEEN_SIDE_CASTLE_FILE + 2, BLACK_BACK_RANK), WHITE) {
+            
+            // the dest_pos is where the king ends up.
             moves.push(Move {
                 origin_piece: piece.0,
                 origin_pos: piece.to_position(),
                 dest_piece: NO_PIECE,
-                dest_pos: Position(2, BLACK_BACK_RANK),
+                dest_pos: Position(QUEEN_SIDE_CASTLE_FILE, BLACK_BACK_RANK),
                 meta_info: QUEEN_CASTLE 
             });
         }
@@ -90,9 +92,9 @@ pub fn generate_castling_moves(piece: PiecePosition, board: &Board) -> MovesIter
 
 mod tests {
     #[allow(unused_imports)]
-    #[allow(non_snake_case)]
     use super::*;
 
+    #[allow(non_snake_case)]
     #[test]        
     fn test_castling__starting_board() {
         let board = Board::from_fen(START_FEN);
@@ -102,6 +104,7 @@ mod tests {
         assert_eq!(moves.len(), 0);
     }
     
+    #[allow(non_snake_case)]
     #[test]        
     fn test_castling__kingside_white() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE);
@@ -127,6 +130,7 @@ mod tests {
         
         let piece = board.get_piece_by_pgn("e8");
         let moves = generate_castling_moves(piece, &board);
+
         let diff = move_list_diff(&moves.collect::<Vec<_>>(), &vec![
             Move {
                 origin_piece: B_KING,
@@ -192,6 +196,7 @@ mod tests {
         assert!(moves.collect::<Vec<_>>().len() == 0);
     }
     
+    #[test]
     fn test_castling__queenside_blocked() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE_BLOCKED);
         

@@ -3,6 +3,7 @@ use types::*;
 use std::collections::hash_map::RandomState;
 use std::collections;
 
+//TODO: are any of these functions candidates for inlining?
 pub fn is_white(piece: PieceType) -> bool {
     piece >= W_PAWN && piece <= W_KING
 }

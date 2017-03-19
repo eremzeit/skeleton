@@ -26,6 +26,7 @@ impl Move {
         }
     }
     
+    //TODO is this being called anywhere?
     pub fn is_valid(&self) -> bool {
         let is_piece = self.origin_piece != NO_PIECE;
         let valid_capture = self.meta_info != CAPTURE || self.dest_piece != NO_PIECE;
