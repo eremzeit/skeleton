@@ -9,6 +9,24 @@ use types::*;
 #[derive(Copy)]
 pub struct Mailbox(pub [PieceType; 128]);
 
+#[derive(Copy, Clone)]
+pub struct Board {
+    pub bb: BitBoard,
+    pub mb: Mailbox,
+    pub to_move: Color,
+    pub zhash: u64,
+    pub castling: u8,
+    pub en_passant: File,
+
+    // Gets set to zero any time there's a non-reversible move or capture.  Increments every time
+    // a player moves.  If hits fifty, the game is drawn.
+    pub halfmove_counter: u8,
+
+    // Starts at 1.  Increments every time black moves.
+    pub fullmove_counter: u8,
+}
+
+
 impl Clone for Mailbox { fn clone(&self) -> Self { *self } }
 
 // all valid indexes into the mailbox can be anded with this and should equal 0
@@ -29,6 +47,10 @@ impl Mailbox {
     
     pub fn getp(&self, pos: Position) -> PieceType {
         self.get(pos.0, pos.1)
+    }
+    
+    pub fn setp(&mut self, pos: Position, piece: PieceType) {
+        self.set(pos.0, pos.1, piece);
     }
 
     // TODO: this is slow.  if we want to be able to handle off-board queries
@@ -60,18 +82,6 @@ impl Mailbox {
         self.set(orig_pos.0, orig_pos.1, NO_PIECE);
     }
 
-}
-
-#[derive(Copy, Clone)]
-pub struct Board {
-    pub bb: BitBoard,
-    pub mb: Mailbox,
-    pub to_move: Color,
-    pub zhash: u64,
-    pub castling: u8,
-    pub en_passant: File,
-    pub halfmove_counter: u8,
-    pub fullmove_counter: u8,
 }
 
 impl Board {
@@ -294,29 +304,6 @@ impl Board {
         self.zhash = self.to_hash();
     }
     
-    //fn _get_pieces(&self, piece_type: PieceType) -> PieceList {
-    //    let result:PieceList = vec![]; 
-
-    //    for f in 0..FILE_COUNT {
-    //        for r in 0..RANK_COUNT {
-
-    //            let _piece_type = self.mb.get(f, r);
-    //            if _piece_type == piece_type {
-    //                result.push(PiecePosition(piece_type, f, r)); 
-    //            }
-    //        }
-    //    }
-
-    //    result
-    //}
-    //
-    //fn get_pawns(&self, color: Color) -> PieceList {
-    //    self._get_pieces(if color == WHITE { W_PAWN } else { B_PAWN });
-    //}
-    //
-    //fn get_bishops(&self, color: Color) -> PieceList {
-    //    self._get_pieces(if color == WHITE { W_BISHOP } else { B_BISHOP })
-    //}
 }
 
  

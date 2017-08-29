@@ -24,6 +24,24 @@ pub fn to_white(piece: PieceType) -> PieceType {
     }
 }
 
+pub fn to_black(piece: PieceType) -> PieceType {
+    if piece >= B_PAWN && piece <= B_KING {
+        piece 
+    } else {
+        opposite_color_piece_type(piece)
+    }
+}
+
+pub fn to_color(piece: PieceType, should_be_white: bool) -> PieceType {
+    let piece_is_white: bool = piece >= W_PAWN && piece <= W_KING;
+
+    if (should_be_white && piece_is_white) || (!should_be_white && !piece_is_white) {
+        piece 
+    } else {
+        opposite_color_piece_type(piece)
+    }
+}
+
 pub fn opposite_color_piece_type(piece_type: PieceType) -> PieceType {
     if piece_type >= W_PAWN && piece_type <= W_KING {
         piece_type + PIECE_TYPE_COLOR_OFFSET
@@ -57,8 +75,6 @@ pub fn position_list_diff(positions1: &Vec<Position>, positions2: &Vec<Position>
     let set1 = positions1.iter().map(|p| { *p }).collect::<collections::HashSet<Position, RandomState>>();
     let set2 = positions2.iter().map(|p| { *p }).collect::<collections::HashSet<Position, RandomState>>();
 
-    println!("set1: {:?}", set1);
-    println!("set2: {:?}", set2);
     set1.symmetric_difference(&set2).map(|p| { *p }).collect::<Vec<Position>>()
 }
 

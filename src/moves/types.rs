@@ -115,13 +115,6 @@ pub fn move_list_diff(positions1: &Vec<Move>, positions2: &Vec<Move>) -> Vec<Mov
     let set1 = positions1.iter().map(|p| { *p }).collect::<collections::HashSet<Move, RandomState>>();
     let set2 = positions2.iter().map(|p| { *p }).collect::<collections::HashSet<Move, RandomState>>();
 
-    //if positions1.iter().any(|m| !m.is_valid()) {
-    //    println!("Move is invalid: {:?}", m);
-    //    assert!(false);
-    //}
-
-    println!("set1: {:?}", set1);
-    println!("set2: {:?}", set2);
     set1.symmetric_difference(&set2).map(|p| { *p }).collect::<Vec<Move>>()
 }
 

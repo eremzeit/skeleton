@@ -88,3 +88,20 @@ pub const KING_SIDE_CASTLE_FILE: File = 6;
 pub const START_FEN: &'static str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 pub const INTERESTING_FEN: &'static str = "r2qk2r/pp3pbp/3p1np1/8/2PBPQb1/8/PP4PP/RN2KB1R b KQkq - 0 12";
 
+pub const R1: Rank = 0;
+pub const R2: Rank = 1;
+pub const R3: Rank = 2;
+pub const R4: Rank = 3;
+pub const R5: Rank = 4;
+pub const R6: Rank = 5;
+pub const R7: Rank = 6;
+pub const R8: Rank = 7;
+
+pub const F1: File = 0;
+pub const F2: File = 1;
+pub const F3: File = 2;
+pub const F4: File = 3;
+pub const F5: File = 4;
+pub const F6: File = 5;
+pub const F7: File = 6;
+pub const F8: File = 7;
