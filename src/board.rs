@@ -284,6 +284,12 @@ impl Board {
 
         None 
     }
+    
+    pub fn get_pieces_of_color(&self, color: Color) -> PieceList {
+        self.get_pieces().into_iter().filter(|piece_pos| {
+            color_of(piece_pos.0) == color
+        }).collect::<Vec<_>>()
+    }
 
     pub fn get_pieces(&self) -> PieceList {
         let mut pieces: PieceList = vec![];
@@ -373,6 +379,17 @@ mod tests {
         #[test]
         fn test_print_board() {
             let board = Board::from_fen(START_FEN);
+            board.print_board();
+        }
+        
+        #[test]
+        fn test_get_pieces_of_color() {
+            let board = Board::from_fen(START_FEN);
+            let white_pieces = board.get_pieces_of_color(WHITE);
+            let black_pieces = board.get_pieces_of_color(BLACK);
+
+            assert_eq!(white_pieces.len(), 16);
+            assert_eq!(black_pieces.len(), 16);
             board.print_board();
         }
     }

@@ -20,6 +20,10 @@ use super::types::{
 
 use constants::*;
 
+//pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
+//    
+//}
+
 pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList {
     let moves = match to_white(piece.0) {
         PAWN => generate_pawn_moves(piece, board, true, false),
