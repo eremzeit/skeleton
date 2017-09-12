@@ -1,13 +1,24 @@
-use self::castling;
-use util::to_white;
+use std::iter;
 
-use super::types::*;
+use super::castling;
+use util::to_white;
 use board::Board;
-use types::Position;
-use types::PiecePosition;
-use types::*;
+use types::{Position, PiecePosition};
+use super::{would_move_cause_check, is_pos_attacked_by};
+use util::{
+    is_occupied_and_enemy, 
+    opposite_color, 
+    is_same_color,
+    color_of
+};
+use super::types::{
+    MovesIter, 
+    Move, 
+    MoveList,
+    AttackingRay
+};
+
 use constants::*;
-use super::*;
 
 pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList {
     let moves = match to_white(piece.0) {
