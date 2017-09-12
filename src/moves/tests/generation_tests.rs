@@ -1,12 +1,3 @@
-#[allow(unused_imports)]
-use super::*;
-
-#[allow(unused_imports)]
-use std::collections::hash_map::RandomState;
-
-#[allow(unused_imports)]
-use util::*;
-
 const TEST_FEN1: &'static str = "r1bk1b1K/pp2p1p1/N1p1Pq1B/2B1rp2/Rn1P1PQP/1p1n1R2/P1P1P1P1/1N6 w - - 6 1";
 const BISHOP_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/3B4/8/K7 w - - 0 1";
 const ROOK_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/8/5r1p/K7 b - - 0 1";
@@ -15,173 +6,42 @@ const KING_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/1Pp1r3/2K1b2p/8 w - - 0 1";
 const KING_CHECKED_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/1Pp5/2K1r2p/8 w - - 0 1";
 const KNIGHT_TEST_FEN: &'static str = "7k/8/8/3b1P2/8/4n3/8/K7 b - - 0 1";
 const PAWN_TEST_FEN: &'static str = "7k/8/8/1p3P2/1bn5/1Pp5/2K1r2p/8 w - - 0 1";
-const EP_PAWN_TEST_FEN: &'static str = "";
 
 const ONLY_VALID_MOVE_KC5: &'static str = "8/8/7r/3K4/7r/8/7k/4r3 w - - 0 1";
 const ONLY_VALID_MOVE_NXC5: &'static str = "5b2/3N4/7r/2rK4/7r/8/7k/4r3 w - - 0 1";
 
-mod generate_moves_for_piece {
-    #[allow(unused_imports)]
-    use super::*;
+use constants::*;
+use types::Position;
+use types::PiecePosition;
+use super::generation::*;
+use super::types::*;
+use util::*;
+use board::Board;
 
-    #[test]
-    fn with_constrained_king_movement() {
-        // only valid move is kc8 
-        let board = Board::from_fen("1k6/8/1K6/8/8/8/8/R7 b - - 0 1"); 
-        let moves = generate_moves_for_piece(PiecePosition::from_pgn("kb8"), &board);
-        assert!(moves.len() == 1);
-        assert_eq!(moves[0].dest_pos, Position::from_pgn("c8"));
-    }
-    
-    #[test]
-    fn with_constrained_king_movement2() {
-        let board = Board::from_fen(ONLY_VALID_MOVE_KC5);
-        let moves = generate_moves_for_piece(PiecePosition::from_pgn("Kd5"), &board);
-        assert!(moves.len() == 1);
-        assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
-    }
-    
-    #[test]
-    fn forced_capture() {
-        let board = Board::from_fen(ONLY_VALID_MOVE_NXC5);
-        let moves = generate_moves_for_piece(PiecePosition::from_pgn("Nd7"), &board);
-        assert!(moves.len() == 1);
-        assert_eq!(moves[0].origin_piece, W_KNIGHT);
-        assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
-    }
+#[test]
+fn with_constrained_king_movement() {
+    // only valid move is kc8 
+    let board = Board::from_fen("1k6/8/1K6/8/8/8/8/R7 b - - 0 1"); 
+    let moves = generate_moves_for_piece(PiecePosition::from_pgn("kb8"), &board);
+    assert!(moves.len() == 1);
+    assert_eq!(moves[0].dest_pos, Position::from_pgn("c8"));
 }
 
-#[test]        
-fn test_move_debug_fmt() {
-    assert_eq!(format!("{:?}", Move {
-        origin_piece: W_BISHOP,
-        dest_piece: B_KNIGHT,
-        origin_pos: Position(0,0),
-        dest_pos: Position(5,5),
-        meta_info: QUIET_MOVE
-    }), "Ba1-f6");
-    
-    assert_eq!(format!("{:?}", Move {
-        origin_piece: W_BISHOP,
-        dest_piece: B_KNIGHT,
-        origin_pos: Position(0,0),
-        dest_pos: Position(5,5),
-        meta_info: CAPTURE 
-    }), "Ba1*nf6");
+#[test]
+fn with_constrained_king_movement2() {
+    let board = Board::from_fen(ONLY_VALID_MOVE_KC5);
+    let moves = generate_moves_for_piece(PiecePosition::from_pgn("Kd5"), &board);
+    assert!(moves.len() == 1);
+    assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
 }
 
-#[test]        
-fn test_diag_squares() {
-    let mut ray = diag_squares(Position(0,0));
-                    
-    assert_eq!(ray.squares, vec![
-        Position(0,0),
-        Position(1,1),
-        Position(2,2),
-        Position(3,3),
-        Position(4,4),
-        Position(5,5),
-        Position(6,6),
-        Position(7,7),
-    ]);
-
-    assert_eq!(ray.attacker_index, 0);
-
-    ray = diag_squares(Position(3,6));
-    assert_eq!(ray.squares, vec![
-        Position(0,3),
-        Position(1,4),
-        Position(2,5),
-        Position(3,6),
-        Position(4,7),
-    ]);
-
-    assert_eq!(ray.attacker_index, 3);
-    
-    ray = diag_squares(Position(7,2));
-    assert_eq!(ray.squares, vec![
-        Position(5,0),
-        Position(6,1),
-        Position(7,2),
-    ]);
-
-    assert_eq!(ray.attacker_index, 2);
-    
-    ray = diag_squares(Position(3,2));
-    assert_eq!(ray.squares, vec![
-        Position(1,0),
-        Position(2,1),
-        Position(3,2),
-        Position(4,3),
-        Position(5,4),
-        Position(6,5),
-        Position(7,6),
-    ]);
-    assert_eq!(ray.attacker_index, 2);
-}
-
-#[test]        
-fn test_anti_diag_squares() {
-    let mut ray = anti_diag_squares(Position(0,0));
-                    
-    assert_eq!(ray.squares, vec![
-        Position(0,0),
-    ]);
-
-    assert_eq!(ray.attacker_index, 0);
-
-    ray = anti_diag_squares(Position(3,6));
-    assert_eq!(ray.squares, vec![
-        Position(7,2),
-        Position(6,3),
-        Position(5,4),
-        Position(4,5),
-        Position(3,6),
-        Position(2,7),
-    ]);
-
-    assert_eq!(ray.attacker_index, 4);
-    
-    ray = anti_diag_squares(Position(7,2));
-    assert_eq!(ray.squares, vec![
-        Position(7,2),
-        Position(6,3),
-        Position(5,4),
-        Position(4,5),
-        Position(3,6),
-        Position(2,7),
-    ]);
-    assert_eq!(ray.attacker_index, 0);
-    
-    ray = anti_diag_squares(Position(0,7));
-    assert_eq!(ray.squares, vec![
-        Position(7,0),
-        Position(6,1),
-        Position(5,2),
-        Position(4,3),
-        Position(3,4),
-        Position(2,5),
-        Position(1,6),
-        Position(0,7),
-    ]);
-
-    assert_eq!(ray.attacker_index, 7);
-}
-
-#[test]        
-fn test_horizontal_squares() {
-    let ray = horizontal_squares(Position(5,0));
-    assert_eq!(ray.squares, vec![
-        Position(0,0),
-        Position(1,0),
-        Position(2,0),
-        Position(3,0),
-        Position(4,0),
-        Position(5,0),
-        Position(6,0),
-        Position(7,0),
-    ]);
-    assert_eq!(ray.attacker_index, 5);
+#[test]
+fn forced_capture() {
+    let board = Board::from_fen(ONLY_VALID_MOVE_NXC5);
+    let moves = generate_moves_for_piece(PiecePosition::from_pgn("Nd7"), &board);
+    assert!(moves.len() == 1);
+    assert_eq!(moves[0].origin_piece, W_KNIGHT);
+    assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
 }
 
 #[test]        
@@ -410,101 +270,116 @@ fn test_generate_knight_moves() {
     assert!(are_positions_eq(&positions, &correct));
 }
 
-#[test]
-fn test_is_pos_attacked_2() {
-    let board = Board::from_fen(INTERESTING_FEN);
-    //board.print_board();
+#[test]        
+fn test_horizontal_squares() {
+    let ray = horizontal_squares(Position(5,0));
+    assert_eq!(ray.squares, vec![
+        Position(0,0),
+        Position(1,0),
+        Position(2,0),
+        Position(3,0),
+        Position(4,0),
+        Position(5,0),
+        Position(6,0),
+        Position(7,0),
+    ]);
+    assert_eq!(ray.attacker_index, 5);
 }
 
 #[test]
-fn test_is_pos_attacked() {
-    let board = Board::from_fen(INTERESTING_FEN);
-    board.print_board();
-      
-    //      A B C D E F G H
-    //   8  r - - q k - - r
-    //   7  p p - - - p b p
-    //   6  - - - p - n p -
-    //   5  - - - - - - - -
-    //   4  - - P B P Q b -
-    //   3  - - - - - - - -
-    //   2  P P - - - - P P
-    //   1  R N - - K B - R
-    
-    let attacks: [[bool; 2]; 24] =  [
-        // 1
-        [false, false],
-        [true, false],
-        [true, false],
-        [true, true],
-        [false, false],
-        [true, false],
-        [true, false],
-        [false, false],
+fn test_anti_diag_squares() {
+    let mut ray = anti_diag_squares(Position(0,0));
+                    
+    assert_eq!(ray.squares, vec![
+        Position(0,0),
+    ]);
 
-        //2
-        [true, false], //a
-        [true, false], //b
-        [false, false], //c
-        [true, false], //d
-        [true, true], //e
-        [true, false], //f
-        [true, false], //g
-        [true, false], //h
-        
-        //3
-        [true, false], //a
-        [true, false], //b
-        [true, false], //c
-        [true, false], //d
-        [true, false], //e
-        [true, true], //f
-        [true, false], //g
-        [true, true], //h
-    ];
+    assert_eq!(ray.attacker_index, 0);
 
-    for i in 0..24 {
-        let is_attacked = attacks[i];
-        let pos = Position((i as File) % 8, (i / 8) as Rank);
-        
-        let correct = (
-            is_pos_attacked_by(&board, pos, WHITE) == is_attacked[0]
-            && is_pos_attacked_by(&board, pos, BLACK) == is_attacked[1]
-        ); 
+    ray = anti_diag_squares(Position(3,6));
+    assert_eq!(ray.squares, vec![
+        Position(7,2),
+        Position(6,3),
+        Position(5,4),
+        Position(4,5),
+        Position(3,6),
+        Position(2,7),
+    ]);
 
-        if !correct {
-            println!("failed at: {:?}", pos);
-            assert!(correct)
-        }
-    }
+    assert_eq!(ray.attacker_index, 4);
     
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g7"), WHITE));
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g7"), BLACK));
+    ray = anti_diag_squares(Position(7,2));
+    assert_eq!(ray.squares, vec![
+        Position(7,2),
+        Position(6,3),
+        Position(5,4),
+        Position(4,5),
+        Position(3,6),
+        Position(2,7),
+    ]);
+    assert_eq!(ray.attacker_index, 0);
     
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("g6"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("g6"), BLACK));
+    ray = anti_diag_squares(Position(0,7));
+    assert_eq!(ray.squares, vec![
+        Position(7,0),
+        Position(6,1),
+        Position(5,2),
+        Position(4,3),
+        Position(3,4),
+        Position(2,5),
+        Position(1,6),
+        Position(0,7),
+    ]);
 
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("f6"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("f6"), BLACK));
-    
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a2"), WHITE));
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a2"), BLACK));
-    
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a8"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a8"), BLACK));
-    
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("b8"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("b8"), BLACK));
+    assert_eq!(ray.attacker_index, 7);
+}
 
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a7"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a7"), BLACK));
-    
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a6"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a6"), BLACK));
-    
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("a6"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("a6"), BLACK));
+#[test]        
+fn test_diag_squares() {
+    let mut ray = diag_squares(Position(0,0));
+                    
+    assert_eq!(ray.squares, vec![
+        Position(0,0),
+        Position(1,1),
+        Position(2,2),
+        Position(3,3),
+        Position(4,4),
+        Position(5,5),
+        Position(6,6),
+        Position(7,7),
+    ]);
 
-    assert!(!is_pos_attacked_by(&board, Position::from_pgn("f7"), WHITE));
-    assert!(is_pos_attacked_by(&board, Position::from_pgn("f7"), BLACK));
+    assert_eq!(ray.attacker_index, 0);
+
+    ray = diag_squares(Position(3,6));
+    assert_eq!(ray.squares, vec![
+        Position(0,3),
+        Position(1,4),
+        Position(2,5),
+        Position(3,6),
+        Position(4,7),
+    ]);
+
+    assert_eq!(ray.attacker_index, 3);
+    
+    ray = diag_squares(Position(7,2));
+    assert_eq!(ray.squares, vec![
+        Position(5,0),
+        Position(6,1),
+        Position(7,2),
+    ]);
+
+    assert_eq!(ray.attacker_index, 2);
+    
+    ray = diag_squares(Position(3,2));
+    assert_eq!(ray.squares, vec![
+        Position(1,0),
+        Position(2,1),
+        Position(3,2),
+        Position(4,3),
+        Position(5,4),
+        Position(6,5),
+        Position(7,6),
+    ]);
+    assert_eq!(ray.attacker_index, 2);
 }
