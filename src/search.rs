@@ -67,7 +67,7 @@ pub fn ab_search_max(board, search_params, alpha, beta) ->  {
 }
 
 
-def minimax_Max(zboard, alpha, beta, curDepth, cutoffDepth, moveList):
+//def minimax_Max(zboard, alpha, beta, curDepth, cutoffDepth, moveList):
 
 
 

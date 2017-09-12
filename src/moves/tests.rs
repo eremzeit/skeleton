@@ -2,15 +2,10 @@
 use super::*;
 
 #[allow(unused_imports)]
-use std::collections;
-
-#[allow(unused_imports)]
 use std::collections::hash_map::RandomState;
 
 #[allow(unused_imports)]
 use util::*;
-
-//use std::iter::Chain;
 
 const TEST_FEN1: &'static str = "r1bk1b1K/pp2p1p1/N1p1Pq1B/2B1rp2/Rn1P1PQP/1p1n1R2/P1P1P1P1/1N6 w - - 6 1";
 const BISHOP_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/3B4/8/K7 w - - 0 1";
@@ -21,6 +16,40 @@ const KING_CHECKED_TEST_FEN: &'static str = "7k/8/8/1p3P2/8/1Pp5/2K1r2p/8 w - - 
 const KNIGHT_TEST_FEN: &'static str = "7k/8/8/3b1P2/8/4n3/8/K7 b - - 0 1";
 const PAWN_TEST_FEN: &'static str = "7k/8/8/1p3P2/1bn5/1Pp5/2K1r2p/8 w - - 0 1";
 const EP_PAWN_TEST_FEN: &'static str = "";
+
+const ONLY_VALID_MOVE_KC5: &'static str = "8/8/7r/3K4/7r/8/7k/4r3 w - - 0 1";
+const ONLY_VALID_MOVE_NXC5: &'static str = "5b2/3N4/7r/2rK4/7r/8/7k/4r3 w - - 0 1";
+
+mod generate_moves_for_piece {
+    #[allow(unused_imports)]
+    use super::*;
+
+    #[test]
+    fn with_constrained_king_movement() {
+        // only valid move is kc8 
+        let board = Board::from_fen("1k6/8/1K6/8/8/8/8/R7 b - - 0 1"); 
+        let moves = generate_moves_for_piece(PiecePosition::from_pgn("kb8"), &board);
+        assert!(moves.len() == 1);
+        assert_eq!(moves[0].dest_pos, Position::from_pgn("c8"));
+    }
+    
+    #[test]
+    fn with_constrained_king_movement2() {
+        let board = Board::from_fen(ONLY_VALID_MOVE_KC5);
+        let moves = generate_moves_for_piece(PiecePosition::from_pgn("Kd5"), &board);
+        assert!(moves.len() == 1);
+        assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
+    }
+    
+    #[test]
+    fn forced_capture() {
+        let board = Board::from_fen(ONLY_VALID_MOVE_NXC5);
+        let moves = generate_moves_for_piece(PiecePosition::from_pgn("Nd7"), &board);
+        assert!(moves.len() == 1);
+        assert_eq!(moves[0].origin_piece, W_KNIGHT);
+        assert_eq!(moves[0].dest_pos, Position::from_pgn("c5"));
+    }
+}
 
 #[test]        
 fn test_move_debug_fmt() {

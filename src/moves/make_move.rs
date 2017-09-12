@@ -5,13 +5,11 @@ use board::Board;
 use types::*;
 
 
-pub fn make_move(current_board: &Board, mv: &Move) -> Board {
-    let mut board = current_board.clone();
+pub fn make_move(board: &mut Board, mv: &Move) {
     assert!(mv.is_valid());
     assert!(board.to_move == color_of(mv.origin_piece));
-
     let is_white: bool = board.to_move == WHITE;
-    
+
     match mv.meta_info {
         QUIET_MOVE => {
             board.mb.move_piece(mv.origin_pos, mv.dest_pos);
@@ -174,7 +172,6 @@ pub fn make_move(current_board: &Board, mv: &Move) -> Board {
     }
 
     board.normalize();
-    board
 }
 
 // Sort of randomized pieces
@@ -202,7 +199,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.halfmove_counter, 6);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(5, 2),
             origin_piece: W_ROOK,
             dest_pos: Position(6, 2),
@@ -210,8 +207,8 @@ mod tests {
             meta_info: QUIET_MOVE
         });
 
-        assert_eq!(new_board.halfmove_counter, 7);
-        assert_eq!(new_board.mb.get(6, 2), W_ROOK);
+        assert_eq!(board.halfmove_counter, 7);
+        assert_eq!(board.mb.get(6, 2), W_ROOK);
     }
     
     #[test]        
@@ -219,7 +216,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.mb.get(7, 3), W_PAWN);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(7, 3),
             origin_piece: W_PAWN,
             dest_pos: Position(7, 4),
@@ -227,8 +224,44 @@ mod tests {
             meta_info: QUIET_MOVE
         });
 
-        assert_eq!(new_board.mb.get(7, 4), W_PAWN);
-        assert_eq!(new_board.halfmove_counter, 0);
+        assert_eq!(board.mb.get(7, 4), W_PAWN);
+        assert_eq!(board.halfmove_counter, 0);
+    }
+
+
+    #[test]        
+    fn double_push__pawn() {
+        let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+        
+        make_move(&mut board, &Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,1),
+           dest_pos: Position(0,3),
+           meta_info: DOUBLE_PAWN_PUSH
+        });
+        
+        assert_eq!(board.mb.get(0, 1), NO_PIECE);
+        assert_eq!(board.mb.get(0, 2), NO_PIECE);
+        assert_eq!(board.mb.get(0, 3), W_PAWN);
+        assert_eq!(board.halfmove_counter, 0);
+    }
+    
+    #[test]        
+    fn ep_capture__pawn() {
+        let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
+        make_move(&mut board, &Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(4,4),
+           dest_pos: Position(5,5),
+           meta_info: EP_CAPTURE
+        });
+
+        assert_eq!(board.mb.get(4, 4), NO_PIECE);
+        assert_eq!(board.mb.get(5, 5), W_PAWN);
+        assert_eq!(board.mb.get(4, 5), NO_PIECE);
+        assert_eq!(board.halfmove_counter, 0);
     }
     
     #[test]        
@@ -236,7 +269,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.mb.get(5, 3), W_PAWN);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(5, 3),
             origin_piece: W_PAWN,
             dest_pos: Position(4, 4),
@@ -244,8 +277,8 @@ mod tests {
             meta_info: CAPTURE 
         });
 
-        assert_eq!(new_board.mb.get(5, 3), NO_PIECE);
-        assert_eq!(new_board.mb.get(4, 4), W_PAWN);
+        assert_eq!(board.mb.get(5, 3), NO_PIECE);
+        assert_eq!(board.mb.get(4, 4), W_PAWN);
     }
     
     #[test]        
@@ -256,7 +289,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
         board.print_board();
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -264,8 +297,8 @@ mod tests {
             meta_info: KNIGHT_PROMOTION
         });
 
-        assert_eq!(new_board.mb.get(F8, R2), NO_PIECE);
-        assert_eq!(new_board.mb.get(F8, R1), B_KNIGHT);
+        assert_eq!(board.mb.get(F8, R2), NO_PIECE);
+        assert_eq!(board.mb.get(F8, R1), B_KNIGHT);
     }
     
     #[test]        
@@ -276,7 +309,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
         board.print_board();
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -284,8 +317,8 @@ mod tests {
             meta_info: BISHOP_PROMOTION
         });
 
-        assert_eq!(new_board.mb.get(F8, R2), NO_PIECE);
-        assert_eq!(new_board.mb.get(F8, R1), B_BISHOP);
+        assert_eq!(board.mb.get(F8, R2), NO_PIECE);
+        assert_eq!(board.mb.get(F8, R1), B_BISHOP);
     }
     
     #[test]
@@ -297,7 +330,7 @@ mod tests {
 
         board.print_board();
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -305,8 +338,8 @@ mod tests {
             meta_info: ROOK_PROMOTION
         });
 
-        assert_eq!(new_board.mb.get(F8, R2), NO_PIECE);
-        assert_eq!(new_board.mb.get(F8, R1), B_ROOK);
+        assert_eq!(board.mb.get(F8, R2), NO_PIECE);
+        assert_eq!(board.mb.get(F8, R1), B_ROOK);
 
     }
     
@@ -317,7 +350,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R2), B_PAWN);
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("h2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("h1"),
@@ -325,8 +358,8 @@ mod tests {
             meta_info: QUEEN_PROMOTION
         });
 
-        assert_eq!(new_board.mb.getp(Position::from_pgn("h2")), NO_PIECE);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("h1")), B_QUEEN);
+        assert_eq!(board.mb.getp(Position::from_pgn("h2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("h1")), B_QUEEN);
     }
     
     #[test]
@@ -335,7 +368,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -343,9 +376,9 @@ mod tests {
             meta_info: KNIGHT_PROMO_CAPTURE
         });
         
-        assert_eq!(new_board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b1")), B_KNIGHT);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("b1")), B_KNIGHT);
+        assert_eq!(board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
     }
 
     #[test]
@@ -354,7 +387,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -362,9 +395,9 @@ mod tests {
             meta_info: BISHOP_PROMO_CAPTURE
         });
         
-        assert_eq!(new_board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b1")), B_BISHOP);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("b1")), B_BISHOP);
+        assert_eq!(board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
     }
 
     #[test]
@@ -373,7 +406,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -381,9 +414,9 @@ mod tests {
             meta_info: ROOK_PROMO_CAPTURE
         });
         
-        assert_eq!(new_board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b1")), B_ROOK);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("b1")), B_ROOK);
+        assert_eq!(board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
     }
     
     #[test]
@@ -393,7 +426,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        let new_board = make_move(&mut board, &Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -401,8 +434,8 @@ mod tests {
             meta_info: QUEEN_PROMO_CAPTURE
         });
         
-        assert_eq!(new_board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b1")), B_QUEEN);
-        assert_eq!(new_board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("c2")), NO_PIECE);
+        assert_eq!(board.mb.getp(Position::from_pgn("b1")), B_QUEEN);
+        assert_eq!(board.mb.getp(Position::from_pgn("b2")), NO_PIECE);
     }
 }

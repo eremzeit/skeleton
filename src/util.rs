@@ -34,7 +34,7 @@ pub fn to_black(piece: PieceType) -> PieceType {
 
 pub fn to_color(piece: PieceType, should_be_white: bool) -> PieceType {
     let piece_is_white: bool = piece >= W_PAWN && piece <= W_KING;
-
+    
     if (should_be_white && piece_is_white) || (!should_be_white && !piece_is_white) {
         piece 
     } else {
@@ -162,6 +162,14 @@ pub fn ranks_asc() -> RankIndexIterator {
 
 pub fn ranks_desc() -> RankIndexIterator {
     RankIndexIterator::ranks_desc()
+}
+
+pub fn color_to_string(color: u8) -> &'static str{
+    match color {
+        WHITE => "WHITE",
+        BLACK => "BLACK",
+        _ => "COLOR_INVALID"
+    }
 }
 
 //TODO: could this instead return a PieceType

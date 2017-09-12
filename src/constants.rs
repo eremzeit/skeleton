@@ -72,6 +72,9 @@ pub const WHITE_PAWN_STARTING_RANK: i8 = 1;
 pub const WHITE_SINGLE_PUSH_RANK: i8 = 2;
 pub const WHITE_DOUBLE_PUSH_RANK: i8 = 3;
 pub const WHITE_BACK_RANK: i8 = 0;
+
+// this is the rank that a white pawn needs to be on in order for it
+// to be eligable for an EP capture.
 pub const WHITE_EP_CAP_RANK: i8 = 4;
     
 pub const BLACK_Y_DIR_SIGN: i8 = -1;

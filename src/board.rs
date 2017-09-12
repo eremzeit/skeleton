@@ -144,7 +144,9 @@ impl Board {
             //println!("{}", s);
         }
 
-        println!("{}", s);
+
+
+        println!("{}\nTo move: {}", s, self.to_move);
     }
 
     //    A B C D E F G H
@@ -302,8 +304,7 @@ impl Board {
     pub fn normalize(&mut self) {
         self.bb = BitBoard::create_from(&self.mb);
         self.zhash = self.to_hash();
-    }
-    
+    }   
 }
 
  

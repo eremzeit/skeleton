@@ -30,10 +30,12 @@ impl Move {
     pub fn is_valid(&self) -> bool {
         let is_piece = self.origin_piece != NO_PIECE;
         let valid_capture = self.meta_info != CAPTURE || self.dest_piece != NO_PIECE;
+
+
         let valid_ep_capture = (
             self.meta_info != EP_CAPTURE
-            || (is_white(self.origin_piece) && self.dest_pos.1 == WHITE_EP_CAP_RANK)
-            || (!is_white(self.origin_piece) && self.dest_pos.1 == BLACK_EP_CAP_RANK)
+            || (is_white(self.origin_piece) && self.origin_pos.1 == WHITE_EP_CAP_RANK)
+            || (!is_white(self.origin_piece) && self.origin_pos.1 == BLACK_EP_CAP_RANK)
         );
 
         let valid_castling = true;

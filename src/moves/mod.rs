@@ -11,34 +11,24 @@ use board::Board;
 use std::iter;
 use std::cmp;
 use self::castling::*;
+use self::make_move::*;
 
-// maybe in the future we could convert all these generator 
-// functions to return boxed iterators.
-//let x: Box<Iterator<Item=Move>> = Box::new(moves.into_iter());
+pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList {
+    let moves = match to_white(piece.0) {
+        PAWN => generate_pawn_moves(piece, board, true, false),
+        KNIGHT => generate_knight_moves(piece, board, false),
+        BISHOP => generate_bishop_moves(piece, board, false),
+        ROOK => generate_rook_moves(piece, board, false),
+        QUEEN => generate_queen_moves(piece, board, false),
+        KING => generate_king_moves(piece, board, false),
+        _ => MovesIter::from_vec(vec![])
+    };
 
-//pub fn generate_moves(board: Board, piece: PiecePosition) -> MoveList {
-//    generate_bishop_moves(board)
-//        .chain(generate_rook_moves())
-//        .chain(generate_knight_moves())
-//        .chain(generate_pawn_moves())
-//        .chain(generate_queen_moves())
-//        .chain(generate_king_moves());
-//}
-
-// NOTE: If we were really fancy, we'd have custom Iterator structs for each move generation
-// function.  This, as far as I can imagine, is the only way to allow for early termination when
-// generating moves.  If we want the next move to be generated only as a result of calling
-// `next`, then it must be it's own struct.  This is because, across calls to `next` the exact
-// location of iteration would need to be stored as data on the struct.  (static function
-// variables, if they existed, could theoretically be used to simulate generator calls. if we had
-// SFV then we wouldn't need to define a new struct.  However, we'd need to still define the static
-// variables themselves in the function.  However, with SFV we would be able to have a unified
-// sized iterator type which just has a reference to a generator function.
-//
-// In the mean time, we can just try to return MoveIters whereever possible and see where that
-// leads us.  Even in that configuration we still could achieve early termination via the use of
-// chaining operations.  
-
+    println!("generated moves {:?}", moves.moves);
+    moves.into_iter().filter(|mv| {
+        !would_move_cause_check(board, mv)
+    }).collect::<Vec<Move>>()
+}
 
 pub fn diag_squares(pos: Position) -> AttackingRay { 
     let mut ray = AttackingRay::new(); 
@@ -228,6 +218,7 @@ pub fn generate_knight_moves(piece: PiecePosition, board: &Board, as_attacks: bo
             None
         }
     }).collect::<Vec<Move>>();
+    println!("knight moves: {:?}", moves);
 
     MovesIter::from_vec(moves)
 }
@@ -244,16 +235,29 @@ const KING_OFFSETS: [[i8; 2]; 8] = [
 ];
 
 
-
-pub fn _generate_pawn_promotions(piece: PiecePosition, board: &Board, as_attacks: bool) -> MovesIter {
-    MovesIter::from_vec(vec![])
-}
-
 pub fn is_color_in_check(board: &Board, color: Color) -> bool {
-    match board.get_first_piece(W_KING) {
-        Some(piece_pos) =>  is_pos_attacked_by(board, piece_pos.to_position(), opposite_color(color)),
+    let piece = to_color(W_KING, color == WHITE);
+    let piece_pos = board.get_first_piece(piece);
+
+    assert!(piece_pos != None);
+    match piece_pos {
+        Some(some_piece_pos) =>  is_pos_attacked_by(board, some_piece_pos.to_position(), opposite_color(color)),
         None => false
     }
+}
+
+pub fn would_move_cause_check(board: &Board, mv: &Move) -> bool { 
+    let mut new_board: Board = board.clone();
+
+    //println!("board.to_move: {}", board.to_move);
+    new_board.print_board();
+    make_move(&mut new_board, mv);
+    //println!("board.to_move: {}", board.to_move);
+    new_board.print_board();
+
+    let res = is_color_in_check(&new_board, board.to_move);
+    println!("Would move {:?} be leave {} in check? {}", mv, color_to_string(board.to_move), res);
+    res
 }
 
 pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool) -> MovesIter {
@@ -264,24 +268,28 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
         let f: File = piece.1 as i8 + offset[0];
         let r: Rank = piece.2 as i8 + offset[1];
         let other_piece = board.mb.get(f, r);
-        
-
         if other_piece == OFF_BOARD {
             None
         } else {
             //println!("Testing: {:?} + {:?} => {}, {}", piece.to_position(), offset, f, r);
             let other_piece = board.mb.get(f as File, r as Rank);
-            let mut can_attack = (
-                other_piece != OFF_BOARD
-                && (as_attacks || (
-                    !is_same_color(piece.0, other_piece)
-                    && !is_pos_attacked_by(board, Position(f, r), opposite_color(color))
-                ))
-            );
+             
+            //println!("King moving to {:?}", Position(f, r));
+            let mut can_move: bool;
+            if as_attacks {
 
-            if can_attack {
-                
-
+                //println!("as_attacks: {}", as_attacks);
+                can_move = true;
+            } else {
+                let empty_or_enemy = other_piece == NO_PIECE || !is_same_color(piece.0, other_piece);
+                let square_not_attacked = !is_pos_attacked_by(board, Position(f, r), opposite_color(color));
+                //println!("square_not_attacked: {}", square_not_attacked);
+                //println!("empty_or_enemy: {}", empty_or_enemy);
+                can_move = empty_or_enemy && square_not_attacked;
+            }
+                    
+            //println!("can_move: {}", can_move);
+            if can_move {
                 Some(Move {
                     origin_piece: piece.0,
                     origin_pos: Position::new(piece.1, piece.2),
@@ -300,8 +308,8 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
         moves.append(&mut castling_moves); 
     }
 
-
     MovesIter::from_vec(moves)
+
 }
 
 //query piece P on board B where P
@@ -309,8 +317,9 @@ pub fn does_piece_attack(piece: PiecePosition, target_position: Position, board:
     // start casting your moves list as iterators and attempting to use them only from that
     // interface.  particularly, try to cancel out of the iterator early if you can.
     get_piece_attacks(piece, board).find(|m: &Move| { 
-        //println!("is {:?} attacking {:?}?", m.dest_pos, Position(target_position.0, target_position.1));
-        m.dest_pos == Position(target_position.0, target_position.1) 
+        let is_attacking = m.dest_pos == Position(target_position.0, target_position.1);
+        //println!("is {:?}, {:?} attacking {:?}? {}", m.origin_pos, m.dest_pos, Position(target_position.0, target_position.1), is_attacking);
+        is_attacking
     }).is_some()
 }
     
@@ -318,22 +327,32 @@ pub fn does_piece_attack(piece: PiecePosition, target_position: Position, board:
 // for example, pawns might move forward one or two, but they may only attack their 
 // diagnals.
 pub fn get_piece_attacks(piece: PiecePosition, board: &Board) -> MovesIter { 
-    match to_white(piece.0) {
-        PAWN => generate_pawn_moves(piece, board, true, true),
+    
+    let moves = match to_white(piece.0) {
+        PAWN => generate_pawn_moves(piece, board, false, true),
         KNIGHT => generate_knight_moves(piece, board, true),
         BISHOP => generate_bishop_moves(piece, board, true),
         ROOK => generate_rook_moves(piece, board, true),
         QUEEN => generate_queen_moves(piece, board, true),
         KING => generate_king_moves(piece, board, true),
         _ => MovesIter::from_vec(vec![])
-    }
+    };
+    
+    moves
 }
 
 pub fn is_pos_attacked_by(board: &Board, pos: Position, color: Color) -> bool {
+    
     // for each piece, does it attack this square
-    board.get_pieces_iter().find(|piece_pos| {
-        color_of(piece_pos.0) == color && does_piece_attack(*piece_pos, pos, board)
-    }).is_some()
+    let is_attacked: bool = board.get_pieces_iter().find(|piece_pos| {
+        let does_attack = color_of(piece_pos.0) == color && does_piece_attack(*piece_pos, pos, board);
+        //println!("does piece {:?} attack: {:?}? {}", piece_pos, pos, does_attack);
+        does_attack
+    }).is_some();
+    
+    //println!("is_pos_attacked_by: {:?}, {}, {}", pos, color_to_string(color), is_attacked);
+
+    is_attacked
 }
 
 pub fn get_attackers(board: &Board, pos: Position) -> Vec<PiecePosition> {
@@ -365,7 +384,6 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
     let back_rank: Rank;
     let ep_cap_rank: Rank;
     
-    //NOTE: this code is not universal board compatible
     if piece.is_white() { 
         y_dir_sign = WHITE_Y_DIR_SIGN;
         starting_rank = WHITE_PAWN_STARTING_RANK;
@@ -420,7 +438,7 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
         })    
     }
 
-    if board.en_passant != NO_EN_PASSANT && include_ep && !attacks_only{
+    if board.en_passant != NO_EN_PASSANT && include_ep && !attacks_only {
         let file_offset: File = board.en_passant - piece.1;
 
         if piece.2 == ep_cap_rank && file_offset.abs() == 1 {
