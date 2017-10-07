@@ -2,14 +2,17 @@ use std::iter;
 
 use super::castling;
 use util::to_white;
-use board::Board;
+use board::{Board};
+use board::mailbox::{Mailbox};
+
 use types::{Position, PiecePosition};
 use super::{would_move_cause_check, is_pos_attacked_by};
 use util::{
     is_occupied_and_enemy, 
     opposite_color, 
     is_same_color,
-    color_of
+    color_of,
+
 };
 use super::types::{
     MovesIter, 
@@ -20,9 +23,15 @@ use super::types::{
 
 use constants::*;
 
-//pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
-//    
-//}
+pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
+    let all_moves = board.get_pieces_of_color(color).iter().flat_map(|piece_pos: &PiecePosition| {
+        let moves = generate_moves_for_piece(*piece_pos, board);
+        moves 
+    }).collect::<Vec<Move>>();
+
+    println!("all_moves: {:?}", all_moves);
+    all_moves
+}
 
 pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList {
     let moves = match to_white(piece.0) {
@@ -37,7 +46,7 @@ pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList
 
     println!("generated moves {:?}", moves.moves);
     moves.into_iter().filter(|mv| {
-        !would_move_cause_check(board, mv)
+        !would_move_cause_check(board, *mv)
     }).collect::<Vec<Move>>()
 }
 

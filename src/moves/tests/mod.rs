@@ -1,4 +1,5 @@
 mod generation_tests;
+mod random_moves;
 
 #[allow(unused_imports)]
 use super::*;

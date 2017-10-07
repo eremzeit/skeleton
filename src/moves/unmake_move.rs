@@ -3,149 +3,135 @@ use util::*;
 use constants::*;
 use board::Board;
 use types::*;
-use board::history::MoveContext;
 
-pub fn make_move(board: &mut Board, mv: Move) {
+pub fn unmake_move(board: &mut Board, mv: &Move) {
     assert!(mv.is_valid());
     assert!(board.to_move == color_of(mv.origin_piece));
 
-    let moveContext = MoveContext {
-        pending_move: mv, 
-        zhash: board.zhash,
-        castling: board.castling,
-        en_passant: board.en_passant,
-        halfmove_counter: board.halfmove_counter,
-        fullmove_counter: board.fullmove_counter,
-    };
-    
-    board.history.push(moveContext);
-
     let is_white: bool = board.to_move == WHITE;
+
+    board.
 
     match mv.meta_info {
         QUIET_MOVE => {
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            
-            if to_white(mv.origin_piece) == W_PAWN {
-                board.halfmove_counter = 0;
-            } else {
-                board.halfmove_counter += 1;
-            }
-        },
-        DOUBLE_PAWN_PUSH => {
-            assert_eq!(to_white(board.mb.get(mv.origin_pos.0, mv.origin_pos.1)), W_PAWN);
-            board.en_passant = mv.origin_pos.0;
+            assert(board.mb.get(mv.dest_pos) != NO_PIECE);
 
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            board.halfmove_counter = 0;
+            board.mb.move_piece(mv.dest_pos, mv.origin_pos);
+        },
+
+        DOUBLE_PAWN_PUSH => {
+            //board.en_passant = mv.origin_pos.0;
+
+            //board.mb.move_piece(mv.origin_pos, mv.dest_pos);
+            //board.halfmove_counter = 0;
         },
         CAPTURE => {
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            board.halfmove_counter = 0;
+            //board.mb.move_piece(mv.origin_pos, mv.dest_pos);
+            //board.halfmove_counter = 0;
         },
         EP_CAPTURE => {
-            // move friendly pawn 
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            
-            let enemy_rank: Rank = if is_white { BLACK_DOUBLE_PUSH_RANK } else { WHITE_DOUBLE_PUSH_RANK };
-            
-            //should be the opposite color pawn
-            assert_eq!(board.mb.get(mv.dest_pos.0, enemy_rank), opposite_color_piece_type(mv.origin_piece));
+            //// move friendly pawn 
+            //board.mb.move_piece(mv.origin_pos, mv.dest_pos);
+            //
+            //let enemy_rank: Rank = if is_white { BLACK_DOUBLE_PUSH_RANK } else { WHITE_DOUBLE_PUSH_RANK };
+            //
+            ////should be the opposite color pawn
+            //assert_eq!(board.mb.get(mv.dest_pos.0, enemy_rank), opposite_color_piece_type(mv.origin_piece));
 
-            // remove the other pawn
-            board.mb.set(mv.dest_pos.0, enemy_rank, NO_PIECE);
-            board.halfmove_counter = 0;
+            //// remove the other pawn
+            //board.mb.set(mv.dest_pos.0, enemy_rank, NO_PIECE);
+            //board.halfmove_counter = 0;
         },
 
         KING_CASTLE => {
-            // move the king
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            
-            // move the rook
-            board.mb.move_piece(Position(7, mv.origin_pos.1), Position(KING_SIDE_CASTLE_FILE - 1, mv.origin_pos.1));
-            
-            // update the board history
-            let castle_mask = if is_white { W_OO } else { B_OO };
-            board.castling = board.castling & !castle_mask;
-            board.halfmove_counter +=1;
+            // // move the king
+            // board.mb.move_piece(mv.origin_pos, mv.dest_pos);
+            // 
+            // // move the rook
+            // board.mb.move_piece(Position(7, mv.origin_pos.1), Position(KING_SIDE_CASTLE_FILE - 1, mv.origin_pos.1));
+            // 
+            // // update the board history
+            // let castle_mask = if is_white { W_OO } else { B_OO };
+            // board.castling = board.castling & !castle_mask;
+            // board.halfmove_counter +=1;
         },
         
         QUEEN_CASTLE => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_KING);
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_KING);
 
-            // move the king
-            board.mb.move_piece(mv.origin_pos, mv.dest_pos);
-            
-            // move the rook
-            assert!(to_white(board.mb.get(0, mv.origin_pos.1)) == W_ROOK);
-            board.mb.move_piece(Position(0, mv.origin_pos.1), Position(KING_SIDE_CASTLE_FILE - 1, mv.origin_pos.1));
-            
-            // update the castling flag
-            let castle_mask = if is_white { W_OOO } else { B_OOO };
-            board.castling = board.castling & !castle_mask;
-            board.halfmove_counter +=1;
+            // // move the king
+            // board.mb.move_piece(mv.origin_pos, mv.dest_pos);
+            // 
+            // // move the rook
+            // assert!(to_white(board.mb.get(0, mv.origin_pos.1)) == W_ROOK);
+            // board.mb.move_piece(Position(0, mv.origin_pos.1), Position(KING_SIDE_CASTLE_FILE - 1, mv.origin_pos.1));
+            // 
+            // // update the castling flag
+            // let castle_mask = if is_white { W_OOO } else { B_OOO };
+            // board.castling = board.castling & !castle_mask;
+            // board.halfmove_counter +=1;
         },
 
         KNIGHT_PROMOTION => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_KNIGHT, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_KNIGHT, is_white));
+            // board.halfmove_counter = 0;
         },
 
         BISHOP_PROMOTION => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_BISHOP, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_BISHOP, is_white));
+            // board.halfmove_counter = 0;
         },
 
         ROOK_PROMOTION => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_ROOK, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_ROOK, is_white));
+            // board.halfmove_counter = 0;
         },
         
         QUEEN_PROMOTION => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // assert!(to_white(board.mb.getp(mv.dest_pos)) == NO_PIECE);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
+            // board.halfmove_counter = 0;
         },
         
         KNIGHT_PROMO_CAPTURE => {
-            board.halfmove_counter = 0;
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_KNIGHT, is_white));
+            // board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_KNIGHT, is_white));
 
         },
 
         BISHOP_PROMO_CAPTURE => {
-            board.halfmove_counter = 0;
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_BISHOP, is_white));
+            // board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_BISHOP, is_white));
         },
 
         ROOK_PROMO_CAPTURE => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_ROOK, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_ROOK, is_white));
+            // board.halfmove_counter = 0;
         },
         
         QUEEN_PROMO_CAPTURE => {
-            assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
-            board.mb.setp(mv.origin_pos, NO_PIECE);
-            board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
-            board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
-            board.halfmove_counter = 0;
+            // assert!(to_white(board.mb.getp(mv.origin_pos)) == W_PAWN);
+            // board.mb.setp(mv.origin_pos, NO_PIECE);
+            // board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
+            // board.mb.setp(mv.dest_pos, to_color(W_QUEEN, is_white));
+            // board.halfmove_counter = 0;
         },
     
         _ => {
@@ -211,7 +197,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.halfmove_counter, 6);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(5, 2),
             origin_piece: W_ROOK,
             dest_pos: Position(6, 2),
@@ -228,7 +214,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.mb.get(7, 3), W_PAWN);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(7, 3),
             origin_piece: W_PAWN,
             dest_pos: Position(7, 4),
@@ -245,7 +231,7 @@ mod tests {
     fn double_push__pawn() {
         let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
         
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
            origin_piece: W_PAWN,
            dest_piece: NO_PIECE,
            origin_pos: Position(0,1),
@@ -262,7 +248,7 @@ mod tests {
     #[test]        
     fn ep_capture__pawn() {
         let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
            origin_piece: W_PAWN,
            dest_piece: NO_PIECE,
            origin_pos: Position(4,4),
@@ -281,7 +267,7 @@ mod tests {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.mb.get(5, 3), W_PAWN);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(5, 3),
             origin_piece: W_PAWN,
             dest_pos: Position(4, 4),
@@ -301,7 +287,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
         board.print_board();
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -321,7 +307,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
         board.print_board();
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -342,7 +328,7 @@ mod tests {
 
         board.print_board();
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position(F8, R2),
             origin_piece: B_PAWN,
             dest_pos: Position(F8, R1),
@@ -362,7 +348,7 @@ mod tests {
         assert_eq!(board.mb.get(F8, R2), B_PAWN);
         assert_eq!(board.mb.get(F8, R1), NO_PIECE);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("h2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("h1"),
@@ -380,7 +366,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -399,7 +385,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -418,7 +404,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
@@ -438,7 +424,7 @@ mod tests {
         assert_eq!(board.mb.getp(Position::from_pgn("c2")), B_PAWN);
         assert_eq!(board.mb.getp(Position::from_pgn("b1")), W_KNIGHT);
 
-        make_move(&mut board, Move {
+        make_move(&mut board, &Move {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),

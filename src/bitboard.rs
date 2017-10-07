@@ -1,5 +1,5 @@
 use std::ops::{Index, IndexMut};
-use board::Mailbox;
+use board::mailbox::Mailbox;
 use constants::*;
 
 #[derive(Copy, Clone, PartialEq, Eq)]

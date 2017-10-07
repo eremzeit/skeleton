@@ -1,8 +1,8 @@
-mod tests;
-mod types;
-mod castling;
-mod make_move;
-mod generation;
+pub mod tests;
+pub mod types;
+pub mod castling;
+pub mod make_move;
+pub mod generation;
 
 use self::types::Move;
 use types::{Position, PiecePosition};
@@ -20,7 +20,7 @@ use self::castling::*;
 use self::make_move::*;
 use self::generation as gen;
 
-pub fn would_move_cause_check(board: &Board, mv: &Move) -> bool { 
+pub fn would_move_cause_check(board: &Board, mv: Move) -> bool { 
     let mut new_board: Board = board.clone();
 
     //println!("board.to_move: {}", board.to_move);
