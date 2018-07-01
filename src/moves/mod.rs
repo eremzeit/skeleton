@@ -2,6 +2,7 @@ pub mod tests;
 pub mod types;
 pub mod castling;
 pub mod make_move;
+pub mod unmake_move;
 pub mod generation;
 
 use self::types::Move;

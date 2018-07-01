@@ -14,6 +14,7 @@ use util::{
     color_of,
 
 };
+
 use super::types::{
     MovesIter, 
     Move, 
@@ -23,6 +24,7 @@ use super::types::{
 
 use constants::*;
 
+// TODO: write a stateful move generator trait that generates moves 
 pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
     let all_moves = board.get_pieces_of_color(color).iter().flat_map(|piece_pos: &PiecePosition| {
         let moves = generate_moves_for_piece(*piece_pos, board);

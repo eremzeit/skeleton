@@ -9,7 +9,7 @@ pub fn make_move(board: &mut Board, mv: Move) {
     assert!(mv.is_valid());
     assert!(board.to_move == color_of(mv.origin_piece));
 
-    let moveContext = MoveContext {
+    let move_context = MoveContext {
         pending_move: mv, 
         zhash: board.zhash,
         castling: board.castling,
@@ -18,7 +18,7 @@ pub fn make_move(board: &mut Board, mv: Move) {
         fullmove_counter: board.fullmove_counter,
     };
     
-    board.history.push(moveContext);
+    board.history.push(move_context);
 
     let is_white: bool = board.to_move == WHITE;
 
@@ -207,7 +207,7 @@ mod tests {
     use super::*;
 
     #[test]        
-    fn quiet_move__non_pawn() {
+    fn quiet_move_non_pawn() {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.halfmove_counter, 6);
 
@@ -224,7 +224,7 @@ mod tests {
     }
     
     #[test]        
-    fn quiet_move__pawn() {
+    fn quiet_move_pawn() {
         let mut board = Board::from_fen(TEST_FEN1);
         assert_eq!(board.mb.get(7, 3), W_PAWN);
 
@@ -242,7 +242,7 @@ mod tests {
 
 
     #[test]        
-    fn double_push__pawn() {
+    fn double_push_pawn() {
         let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
         
         make_move(&mut board, Move {
@@ -260,7 +260,7 @@ mod tests {
     }
     
     #[test]        
-    fn ep_capture__pawn() {
+    fn ep_capture_pawn() {
         let mut board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
         make_move(&mut board, Move {
            origin_piece: W_PAWN,

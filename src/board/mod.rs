@@ -1,5 +1,6 @@
 pub mod history;
 pub mod mailbox;
+pub mod utils;
 
 use constants::*;
 use bitboard::BitBoard;
@@ -107,8 +108,12 @@ impl Board {
         }
 
 
-
-        println!("{}\nTo move: {}", s, self.to_move);
+        println!("{}", s);
+        println!("To move: {}", self.to_move);
+        
+        println!("zhash: {}", self.zhash);
+        println!("castling: {}", self.castling);
+        println!("en_passant: {}", self.en_passant);
     }
 
     //    A B C D E F G H
@@ -270,9 +275,19 @@ impl Board {
     }
     
     pub fn normalize(&mut self) {
-        self.bb = BitBoard::create_from(&self.mb);
+        //self.bb = BitBoard::create_from(&self.mb);
         self.zhash = self.to_hash();
-    }   
+    }
+    
+    // TODO: needs to be tested
+    pub fn reset_via_move_context(&mut self, context: &MoveContext) {
+        self.to_move = color_of(context.pending_move.origin_piece);
+        self.castling = context.castling;
+        self.en_passant = context.en_passant;
+        self.halfmove_counter = context.halfmove_counter;
+        self.fullmove_counter = context.fullmove_counter;
+        self.zhash = context.zhash;
+    }
 }
 
  

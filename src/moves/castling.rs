@@ -152,7 +152,7 @@ mod tests {
 //const BOTH_CASTLE_QUEENSIDE_BLOCKED: &'static str = "r3kbnr/pppq1ppp/2n1p3/3p2B1/3P2b1/2N1P3/PPPQ1PPP/R3KBNR w KQkq - 12 7";
     
     #[test]        
-    fn test_castling__queenside_white() {
+    fn test_castling_queenside_white() {
         let board = Board::from_fen(BOTH_CASTLE_QUEENSIDE);
         
         let piece = board.get_piece_by_pgn("e1");
@@ -171,7 +171,7 @@ mod tests {
     }
     
     #[test]        
-    fn test_castling__queenside_black() {
+    fn test_castling_queenside_black() {
         let board = Board::from_fen(BOTH_CASTLE_QUEENSIDE);
         
         let piece = board.get_piece_by_pgn("e8");
@@ -188,7 +188,7 @@ mod tests {
     }
     
     #[test]        
-    fn test_castling__kingside_blocked() {
+    fn test_castling_kingside_blocked() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE_BLOCKED);
         
         let piece = board.get_piece_by_pgn("e1");
@@ -197,7 +197,7 @@ mod tests {
     }
     
     #[test]
-    fn test_castling__queenside_blocked() {
+    fn test_castling_queenside_blocked() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE_BLOCKED);
         
         let piece = board.get_piece_by_pgn("e8");

@@ -1,6 +1,6 @@
 use std::fmt;
 use constants::*;
-use util::*;
+use util::{is_white, file_to_char, char_to_file, piece_type_to_char, char_to_piece_type};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position(pub File, pub Rank);

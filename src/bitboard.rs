@@ -29,7 +29,7 @@ impl BitBoard {
         bb
     }
 
-    /// Populate the bitboard entries for occupancy
+    // Populate the bitboard entries for occupancy
     pub fn normalize(&mut self) {
         self[ALL_WHITE] = self[W_PAWN] | self[W_KNIGHT] | self[W_BISHOP] | self[W_ROOK] |
                           self[W_QUEEN] | self[W_KING];

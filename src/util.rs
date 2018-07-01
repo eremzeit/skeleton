@@ -1,4 +1,16 @@
-use constants::*;
+use constants::{
+    FILE_COUNT, RANK_COUNT,
+    WHITE, 
+    BLACK,
+    PieceType,
+    Color,
+    W_PAWN, W_KING, W_KNIGHT, W_BISHOP, W_QUEEN, W_ROOK,
+    B_PAWN, B_KING, B_KNIGHT, B_BISHOP, B_QUEEN, B_ROOK,
+    NO_PIECE,
+    PIECE_TYPE_COLOR_OFFSET,
+    Rank, File,
+    NO_EN_PASSANT,
+};
 use types::*;
 use std::collections::hash_map::RandomState;
 use std::collections;
@@ -69,6 +81,28 @@ pub fn assert_position_list_eq(positions1: &Vec<Position>, positions2: &Vec<Posi
             assert!(false); 
         }
     }
+}
+
+pub fn forward_for_color(color: Color, position: Position) -> Position {
+    if is_white(color) {
+        Position(position.0, position.1 + 1)
+    }  else {
+        Position(position.0, position.1 - 1)
+    }
+}
+
+pub fn backwards_for_color(color: Color, position: Position) -> Position {
+    let mut rank: Rank;
+
+    if is_white(color) {
+        rank = position.1 + 1;
+        assert!(rank <= FILE_COUNT - 1);
+    }  else {
+        rank = position.1 - 1;
+        assert!(rank >= 0);
+    }
+    
+    Position(position.0, rank)
 }
 
 pub fn position_list_diff(positions1: &Vec<Position>, positions2: &Vec<Position>) -> Vec<Position> {

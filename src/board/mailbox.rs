@@ -61,6 +61,22 @@ impl Mailbox {
         self.set(dest_pos.0, dest_pos.1, piece);
         self.set(orig_pos.0, orig_pos.1, NO_PIECE);
     }
-
 }
 
+// impl PartialEq for [PieceType; 128] {
+//     fn eq(&self, other: &[PieceType; 128]) -> bool {
+//         self.0.as_slice() == other.0.as_slice() 
+//     }
+// }
+
+impl PartialEq for Mailbox {
+    fn eq(&self, other: &Mailbox) -> bool {
+        for i in 0..128 {
+            if self.0[i] != other.0[i] {
+                return false;
+            }
+        }
+
+        true
+    }
+}
