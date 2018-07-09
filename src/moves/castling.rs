@@ -96,7 +96,7 @@ mod tests {
 
     #[allow(non_snake_case)]
     #[test]        
-    fn test_castling__starting_board() {
+    fn test_castling_starting_board() {
         let board = Board::from_fen(START_FEN);
         let piece = board.get_piece_by_pgn("e1");
         let moves = generate_castling_moves(piece, &board).collect::<Vec<_>>();
@@ -106,7 +106,7 @@ mod tests {
     
     #[allow(non_snake_case)]
     #[test]        
-    fn test_castling__kingside_white() {
+    fn test_castling_kingside_white() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE);
         
         let piece = board.get_piece_by_pgn("e1");
@@ -125,7 +125,7 @@ mod tests {
     }
     
     #[test]        
-    fn test_castling__kingside_black() {
+    fn test_castling_kingside_black() {
         let board = Board::from_fen(BOTH_CASTLE_KINGSIDE);
         
         let piece = board.get_piece_by_pgn("e8");
