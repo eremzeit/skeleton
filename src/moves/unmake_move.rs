@@ -4,18 +4,11 @@ use constants::*;
 use board::Board;
 use types::{Position};
 
-
 use super::make_move::{make_move};
 use board::utils::{
     are_boards_equal, 
     assert_boards_equal
 };
-
-// pub origin_piece: PieceType,
-// pub dest_piece: PieceType,
-// pub origin_pos: Position,
-// pub dest_pos: Position,
-// pub meta_info: MetaInfo
 
 pub fn unmake_move(board: &mut Board, mv: &Move) {
     assert!(mv.is_valid());
@@ -246,24 +239,20 @@ mod tests {
     
     #[test]
     fn rook_promo_move() {
-        // let mut board = Board::from_fen(TEST_FEN2);
-        //  
-        // assert_eq!(board.mb.get(F8, R2), B_PAWN);
-        // assert_eq!(board.mb.get(F8, R1), NO_PIECE);
+        let mut board = Board::from_fen(TEST_FEN2);
+        let orig_board = board.clone();
+        
+        let mv = Move {
+            origin_pos: Position(F8, R2),
+            origin_piece: B_PAWN,
+            dest_pos: Position(F8, R1),
+            dest_piece: B_ROOK,
+            meta_info: ROOK_PROMOTION
+        };
 
-        // board.print_board();
-
-        // make_move(&mut board, &Move {
-        //     origin_pos: Position(F8, R2),
-        //     origin_piece: B_PAWN,
-        //     dest_pos: Position(F8, R1),
-        //     dest_piece: B_ROOK,
-        //     meta_info: ROOK_PROMOTION
-        // });
-
-        // assert_eq!(board.mb.get(F8, R2), NO_PIECE);
-        // assert_eq!(board.mb.get(F8, R1), B_ROOK);
-
+        make_move(&mut board, mv.clone());
+        unmake_move(&mut board, &mv);
+        assert_boards_equal(&board, &orig_board);
     }
     
     #[test]
