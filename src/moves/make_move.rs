@@ -384,7 +384,7 @@ mod tests {
             origin_pos: Position::from_pgn("c2"),
             origin_piece: B_PAWN,
             dest_pos: Position::from_pgn("b1"),
-            dest_piece: B_KNIGHT,
+            dest_piece: NO_PIECE,
             meta_info: KNIGHT_PROMO_CAPTURE
         });
         

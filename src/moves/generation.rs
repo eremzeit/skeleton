@@ -23,8 +23,10 @@ use super::types::{
 };
 
 use constants::*;
+use constants::{ PieceType };
 
-// TODO: write a stateful move generator trait that generates moves 
+// TODO: write a stateful move generator trait that generates moves without doing 
+// redundant work.
 pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
     let all_moves = board.get_pieces_of_color(color).iter().flat_map(|piece_pos: &PiecePosition| {
         let moves = generate_moves_for_piece(*piece_pos, board);
@@ -318,6 +320,7 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
     let single_push_rank: Rank;
     let back_rank: Rank;
     let ep_cap_rank: Rank;
+
     
     if piece.is_white() { 
         y_dir_sign = WHITE_Y_DIR_SIGN;
@@ -334,6 +337,8 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
         back_rank = BLACK_BACK_RANK;
         ep_cap_rank = BLACK_EP_CAP_RANK
     }
+    
+    let is_promotable = if piece.2 == back_rank - y_dir_sign { true } else { false };
 
     let can_double_push =
         !attacks_only 
@@ -358,21 +363,7 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
 
         moves.push(m);
     }
-
-    let can_push = 
-        !attacks_only && 
-        board.mb.get(piece.1, (piece.2 as i8 + y_dir_sign) as i8) == NO_PIECE;
-
-    if can_push {
-        moves.push( Move {
-            origin_piece: piece.0,
-            origin_pos: piece.to_position(),
-            dest_piece: NO_PIECE,
-            dest_pos: Position(piece.1, (piece.2 as i8 + y_dir_sign) as i8),
-            meta_info: QUIET_MOVE
-        })    
-    }
-
+    
     if board.en_passant != NO_EN_PASSANT && include_ep && !attacks_only {
         let file_offset: File = board.en_passant - piece.1;
 
@@ -388,6 +379,11 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
             moves.push(m);
         }
     }
+
+    // PUSHES AND ATTACKS
+    let can_push = 
+        !attacks_only && 
+        board.mb.get(piece.1, (piece.2 as i8 + y_dir_sign) as i8) == NO_PIECE;
     
     let left_dest_rank: Rank = piece.2 + y_dir_sign;
     let left_dest_file: File = piece.1 - 1;
@@ -395,7 +391,7 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
     //todo: redundant  
     let right_dest_rank: Rank = piece.2 + y_dir_sign;
     let right_dest_file: File = piece.1 + 1;
-
+    
     let can_left_capture = 
         left_dest_file >= 0
         && (attacks_only || is_occupied_and_enemy(
@@ -408,35 +404,151 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
             board.mb.get(right_dest_file, right_dest_rank),
             piece.0));
 
-    
-    if can_left_capture {
-        let dest_piece = board.mb.get(left_dest_file, left_dest_rank);
+ 
+    if is_promotable {
+        if can_push {
+            let dest_pos = Position(piece.1, (piece.2 as i8 + y_dir_sign) as i8);
 
-        let m = Move {
-            origin_piece: piece.0,
-            origin_pos: Position(piece.1, piece.2),
-            dest_piece: dest_piece,
-            dest_pos: Position(left_dest_file, left_dest_rank),
-            meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
-        };
+            moves.append(
+                &mut pawn_promo(dest_pos, piece.to_position(), piece.0)
+            );
+        } 
 
-        moves.push(m);
-    }
+        if can_left_capture {
+            let dest_pos = Position(left_dest_file, left_dest_rank);
+            let dest_piece = board.mb.get(left_dest_file, left_dest_rank);
 
-    if can_right_capture {
-        let dest_piece = board.mb.get(right_dest_file, right_dest_rank);
-        let m = Move {
-            origin_piece: piece.0,
-            origin_pos: Position(piece.1, piece.2),
-            dest_piece: dest_piece,
-            dest_pos: Position(right_dest_file, right_dest_rank),
-            meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
-        };
+            moves.append(
+                &mut pawn_promo_capture(dest_pos, piece.to_position(), piece.0, dest_piece)
+            );
+        }
 
-        moves.push(m);  
+        if can_right_capture {
+            let dest_pos = Position(right_dest_file, right_dest_rank);
+            let dest_piece = board.mb.get(right_dest_file, right_dest_rank);
+
+            moves.append(
+                &mut pawn_promo_capture(dest_pos, piece.to_position(), piece.0, dest_piece)
+            );
+        }
+    } else {
+        if can_push {
+                moves.push( Move {
+                    origin_piece: piece.0,
+                    origin_pos: piece.to_position(),
+                    dest_piece: NO_PIECE,
+                    dest_pos: Position(piece.1, (piece.2 as i8 + y_dir_sign) as i8),
+                    meta_info: QUIET_MOVE
+                })    
+        }
+
+        if can_left_capture {
+            let dest_piece = board.mb.get(left_dest_file, left_dest_rank);
+
+            let m = Move {
+                origin_piece: piece.0,
+                origin_pos: Position(piece.1, piece.2),
+                dest_piece: dest_piece,
+                dest_pos: Position(left_dest_file, left_dest_rank),
+                meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+            };
+
+            moves.push(m);
+        }
+
+        if can_right_capture {
+            let dest_piece = board.mb.get(right_dest_file, right_dest_rank);
+            let m = Move {
+                origin_piece: piece.0,
+                origin_pos: Position(piece.1, piece.2),
+                dest_piece: dest_piece,
+                dest_pos: Position(right_dest_file, right_dest_rank),
+                meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+            };
+
+            moves.push(m);  
+        }
     }
 
     MovesIter::from_vec(moves)
+}
+
+pub fn pawn_promo_capture(dest_pos: Position, origin_pos: Position, origin_piece: PieceType, dest_piece: PieceType) -> Vec<Move> {
+    let mut moves: MoveList = Vec::with_capacity(4);
+
+    assert!(dest_piece != NO_PIECE);
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: dest_piece,
+        dest_pos: dest_pos,
+        meta_info: KNIGHT_PROMO_CAPTURE
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: dest_piece,
+        dest_pos: dest_pos,
+        meta_info: BISHOP_PROMO_CAPTURE
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: dest_piece,
+        dest_pos: dest_pos,
+        meta_info: ROOK_PROMO_CAPTURE
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: dest_piece,
+        dest_pos: dest_pos,
+        meta_info: QUEEN_PROMO_CAPTURE
+    });
+
+    moves
+}
+
+pub fn pawn_promo(dest_pos: Position, origin_pos: Position, origin_piece: PieceType) -> Vec<Move> {
+    let mut moves: MoveList = Vec::with_capacity(4);
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: NO_PIECE,
+        dest_pos: dest_pos,
+        meta_info: KNIGHT_PROMOTION,
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: NO_PIECE,
+        dest_pos: dest_pos,
+        meta_info: BISHOP_PROMOTION,
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: NO_PIECE,
+        dest_pos: dest_pos,
+        meta_info: ROOK_PROMOTION,
+    });
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: NO_PIECE,
+        dest_pos: dest_pos,
+        meta_info: QUEEN_PROMOTION,
+    });
+
+    moves
 }
     
 // NOTE: this is different from a list of moves.  it represents theoretical attacks.  
