@@ -7,6 +7,8 @@ use super::*;
 #[allow(unused_imports)]
 use util::*;
 
+use moves::generation::{is_color_checkmated};
+
 
 #[test]        
 fn test_move_debug_fmt() {
@@ -125,3 +127,40 @@ fn test_is_pos_attacked() {
     assert!(!is_pos_attacked_by(&board, Position::from_pgn("f7"), WHITE));
     assert!(is_pos_attacked_by(&board, Position::from_pgn("f7"), BLACK));
 }
+
+#[test]        
+fn test_move_list_filtering() {
+    let moves = vec![
+        Move {
+            origin_piece: W_BISHOP,
+            dest_piece: B_KNIGHT,
+            origin_pos: Position(0,0),
+            dest_pos: Position(5,5),
+            meta_info: QUIET_MOVE
+        },
+        
+        Move {
+            origin_piece: W_BISHOP,
+            dest_piece: B_KNIGHT,
+            origin_pos: Position(0,0),
+            dest_pos: Position(5,5),
+            meta_info: QUIET_MOVE
+        },
+    ];
+
+    let moves_str = format!("{:?}", &moves);
+    println!("moves_str: {}", moves_str);
+    assert!(does_match_moves(r"\[Ba1-f6.*\]$", &moves));
+}
+
+#[test]
+fn test_is_color_in_check() {
+    let board = Board::from_fen("6k1/5p2/5Pp1/P4pP1/4pP2/3pPp2/3PpP2/4K2q w - - 0 6");
+    assert_eq!(is_color_in_check(&board, WHITE), true);
+    assert_eq!(is_color_in_check(&board, BLACK), false);
+    assert_eq!(is_color_checkmated(&board, WHITE), true);
+    assert_eq!(is_color_checkmated(&board, BLACK), false);
+    
+}
+
+

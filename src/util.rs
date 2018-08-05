@@ -3,10 +3,12 @@ use constants::{
     WHITE, 
     BLACK,
     PieceType,
+    PieceClass,
     Color,
     W_PAWN, W_KING, W_KNIGHT, W_BISHOP, W_QUEEN, W_ROOK,
     B_PAWN, B_KING, B_KNIGHT, B_BISHOP, B_QUEEN, B_ROOK,
     NO_PIECE,
+    OFF_BOARD,
     PIECE_TYPE_COLOR_OFFSET,
     Rank, File,
     NO_EN_PASSANT,
@@ -53,6 +55,14 @@ pub fn to_color(piece: PieceType, should_be_white: bool) -> PieceType {
         opposite_color_piece_type(piece)
     }
 }
+    
+// pub fn piece_class_from_type(piece_type: PieceType) -> PieceClass {
+//     (match piece_type {
+//         NO_PIECE => { NO_PIECE },
+//         p @ _ if !is_white(p) => { p - PIECE_TYPE_COLOR_OFFSET },
+//         _ => { piece_type }
+//     }) as PieceClass
+// }
 
 pub fn opposite_color_piece_type(piece_type: PieceType) -> PieceType {
     if piece_type >= W_PAWN && piece_type <= W_KING {
@@ -65,7 +75,9 @@ pub fn opposite_color_piece_type(piece_type: PieceType) -> PieceType {
 }
 
 pub fn is_occupied_and_enemy(piece1: PieceType, piece2: PieceType) -> bool {
-    piece1 != NO_PIECE && piece2 != NO_PIECE && !is_same_color(piece1, piece2)
+    piece1 != NO_PIECE && piece2 != NO_PIECE && 
+        piece1 != OFF_BOARD && piece2 != OFF_BOARD &&
+        !is_same_color(piece1, piece2)
 }
 
 pub fn is_same_color(piece1: PieceType, piece2: PieceType) -> bool {

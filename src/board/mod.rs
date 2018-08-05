@@ -30,6 +30,17 @@ pub struct Board {
     pub fullmove_counter: u8,
 }
 
+impl PartialEq for Board {
+    fn eq(&self, other: &Board) -> bool {
+        self.bb == other.bb &&
+        self.to_move == other.to_move &&
+        self.zhash == other.zhash &&
+        self.castling == other.castling &&
+        self.en_passant == other.en_passant &&
+        self.mb.eq(&other.mb)
+    }
+}
+
 impl Clone for Board {
    fn clone(&self) -> Board {
         Board {
@@ -84,8 +95,49 @@ impl Board {
     // 3   - - - - - - - -
     // 2   - - - - - - - -
     // 1   - - - - - - - -
+    pub fn print_board_indent(&self, indent: usize) {
+        
+        let mut lines: Vec<String> = vec![];
+
+        //let mut s: String = String::new();
+
+        lines.push("\n".to_string());
+        lines.push("   A B C D E F G H\n".to_string());
+        lines.push("                  \n".to_string());
+        
+        for r in ranks_desc() {
+            let mut s: String = String::new();
+            s.push_str(&format!("{}  ", r + 1));
+            
+            for f in files_asc() {
+                let piece_type = self.mb.get(f, r);
+                
+                let piece_str: String = match piece_type {
+                    NO_PIECE => { "-".to_string() },
+                    _ => { format!("{}", piece_type_to_char(piece_type)) }
+                };
+
+                s.push_str(&format!("{} ", &piece_str));
+            }
+
+            s.push_str("\n");
+
+            lines.push(s);
+        }
+
+        lines.push(format!("To move: {}", self.to_move));
+        lines.push(format!("zhash: {}", self.zhash));
+        lines.push(format!("castling: {}", self.castling));
+        lines.push(format!("en_passant: {}", self.en_passant));
+
+        let s = lines.join(&" ".repeat(indent));
+
+        println!("{}", s);
+    }
+
     pub fn print_board(&self) {
         let mut s: String = String::new();
+        s.push_str("\n");
         s.push_str("   A B C D E F G H\n");
         s.push_str("                  \n");
         
@@ -165,7 +217,6 @@ impl Board {
     pub fn get_piece_position(&self, file: File, rank: Rank) -> PiecePosition {
        PiecePosition(self.mb.get(file, rank), file, rank)
     }
-    
 
     // is this correct?
     pub fn get_piece_by_pgn(&self, pgn: &str) -> PiecePosition {
@@ -173,6 +224,91 @@ impl Board {
         PiecePosition(self.mb.get(p.1, p.2), p.1, p.2)
     }
     
+    pub fn to_fen(&self) -> String {
+        let mut s: String = String::new();
+        
+        for rank_inverse in 0..RANK_COUNT {
+            let rank = RANK_COUNT - rank_inverse - 1;
+
+            let mut consecutive_empty = 0;
+            for file in 0..FILE_COUNT {
+                let piece = self.mb.get(file, rank);
+
+                if piece == NO_PIECE {
+                    consecutive_empty += 1;
+                } else {
+                    if consecutive_empty != 0 && piece != NO_PIECE {
+                        s.push_str(&format!("{}", consecutive_empty));
+                    }
+
+                    consecutive_empty = 0;
+                    s.push_str(&piece_type_to_char(piece).to_string());
+                }
+            }
+
+            if consecutive_empty > 0 {
+                s.push_str(&format!("{}", consecutive_empty));
+            }
+
+            if rank != 0 {
+                s.push_str("/");
+            }
+        }
+        
+        s.push_str(" ");
+
+        let turn = match(self.to_move) {
+            WHITE => "w",
+            _ => "b",
+        };
+
+        s.push_str(&format!("{}", turn));
+        s.push_str(" ");
+        
+        if self.castling > 0 {
+            if self.castling | W_OO > 0 {
+                s.push_str("K");
+            }
+            
+            if self.castling | W_OOO > 0 {
+                s.push_str("Q");
+            }
+            
+            if self.castling | B_OO > 0 {
+                s.push_str("k");
+            }
+            
+            if self.castling | B_OOO > 0 {
+                s.push_str("q");
+            }
+        } else {
+            s.push_str("-");
+        }
+
+            
+        s.push_str(" ");
+
+        if self.en_passant == NO_EN_PASSANT {
+            s.push_str(&"-");
+        } else {
+            let rank = match(self.to_move) {
+                WHITE => "3".to_string(),
+                _ => format!("{}", RANK_COUNT - 2),
+            };
+
+            s.push_str(&format!("{}{}", rank, file_to_char(self.en_passant)));
+        }
+
+        s.push_str(" ");
+        s.push_str(&format!("{}", self.halfmove_counter));
+        
+        s.push_str(" ");
+        s.push_str(&format!("{}", self.fullmove_counter + 1));
+
+        println!("s: {}", s);
+        s
+    }
+
     pub fn from_fen(fen: &str) -> Self {
         let mut board = Board::new();
 
@@ -257,7 +393,7 @@ impl Board {
             color_of(piece_pos.0) == color
         }).collect::<Vec<_>>()
     }
-
+    
     pub fn get_pieces(&self) -> PieceList {
         let mut pieces: PieceList = vec![];
 
@@ -351,6 +487,19 @@ mod tests {
             assert_eq!(board.halfmove_counter, 7);
             assert_eq!(board.fullmove_counter, 3);
 
+        }
+        
+        #[test]        
+        fn to_fen() {
+            let test_fen = "r1bqkbnr/p2ppp2/2n3p1/Pp6/2PNP2p/8/1P3PPP/RNBQKB1R w KQkq b6 7 4";
+            let board = Board::from_fen(test_fen);
+            let fen = board.to_fen();
+            let board2 = Board::from_fen(&fen);
+
+            println!("{}\n{}", test_fen, fen);
+            board.print_board();
+            board2.print_board();
+            assert!(board.eq(&board2));
         }
         
         #[test]

@@ -138,6 +138,65 @@ fn test_generate_pawn_moves() {
 }
 
 #[test]
+fn pawn_moves2() {
+    let board = Board::from_fen("6bk/5p2/P4Pp1/5pP1/4pP1p/3pPp2/P2PpP2/4K3 w - - 0 1");
+    board.print_board();
+    let all_moves = generate_all_moves_for_color(&board, board.to_move);
+    let pawn_moves: Vec<Move> = all_moves.into_iter().filter(|mv| {
+       to_white(mv.origin_piece) == PAWN
+    }).collect::<Vec<Move>>();
+
+    let target_list: Vec<Move> = vec![
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,1),
+           dest_pos: Position(0,2),
+           meta_info: QUIET_MOVE 
+        },
+
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,1),
+           dest_pos: Position(0,3),
+           meta_info:DOUBLE_PAWN_PUSH, 
+        },
+        
+        Move {
+           origin_piece: W_PAWN,
+           dest_piece: NO_PIECE,
+           origin_pos: Position(0,5),
+           dest_pos: Position(0,6),
+           meta_info: QUIET_MOVE
+        }
+    ];
+
+    let diff = move_list_diff(&pawn_moves, &target_list);
+
+    assert!(diff.len() == 0);
+}
+
+#[test]
+fn pawn_ep_passant_pinned_to_king() {
+    // only one white pawn. white to move, en passent would normally be available on the
+    // f-file but the pawn is pinned to the king. 
+    let board = Board::from_fen("rnb1k1nr/3p2pp/2pbp3/1p2Pp2/4BK2/p1N5/7Q/R1B3NR w kq f6 0 21");
+    board.print_board();
+    
+    let all_moves = generate_all_moves_for_color(&board, board.to_move);
+    let pawn_moves: Vec<Move> = all_moves.into_iter().filter(|mv| {
+       to_white(mv.origin_piece) == PAWN
+    }).collect::<Vec<Move>>();
+
+    assert!(pawn_moves.len() == 1);
+
+    let target_move = pawn_moves.first().unwrap();
+    assert_eq!(target_move.dest_piece, B_BISHOP);
+    assert_eq!(target_move.meta_info, CAPTURE);
+}
+
+#[test]
 fn test_generate_pawn_moves_double_push() {
     let board = Board::from_fen("r2qk2r/p5bp/3p2p1/1p2Pp1n/2PB1Qb1/7P/PP4P1/RN2KB1R w KQkq f6 5 3");
     board.print_board();

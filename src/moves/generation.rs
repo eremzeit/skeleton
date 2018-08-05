@@ -15,6 +15,8 @@ use util::{
 
 };
 
+use moves::{is_color_in_check};
+
 use super::types::{
     MovesIter, 
     Move, 
@@ -33,7 +35,7 @@ pub fn generate_all_moves_for_color(board: &Board, color: Color) -> MoveList {
         moves 
     }).collect::<Vec<Move>>();
 
-    println!("all_moves: {:?}", all_moves);
+    // println!("all_moves: {:?}", all_moves);
     all_moves
 }
 
@@ -48,11 +50,24 @@ pub fn generate_moves_for_piece(piece: PiecePosition, board: &Board) -> MoveList
         _ => MovesIter::from_vec(vec![])
     };
 
-    println!("generated moves {:?}", moves.moves);
     moves.into_iter().filter(|mv| {
+        assert!(mv.is_valid());
+
+        // println!("mv: {:?}", mv);
         !would_move_cause_check(board, *mv)
     }).collect::<Vec<Move>>()
 }
+
+
+pub fn is_color_checkmated(board: &Board, color: Color) -> bool {
+    let king = board.get_pieces_of_color(color).into_iter().find(|piece_pos| {
+        to_white(piece_pos.0) == KING
+    });
+
+    is_color_in_check(board, color) && 
+        generate_king_moves(king.unwrap().clone(), board, false).count() == 0
+}
+
 
 pub fn diag_squares(pos: Position) -> AttackingRay { 
     let mut ray = AttackingRay::new(); 
@@ -242,7 +257,7 @@ pub fn generate_knight_moves(piece: PiecePosition, board: &Board, as_attacks: bo
             None
         }
     }).collect::<Vec<Move>>();
-    println!("knight moves: {:?}", moves);
+    //println!("knight moves: {:?}", moves);
 
     MovesIter::from_vec(moves)
 }
@@ -312,13 +327,16 @@ pub fn generate_king_moves(piece: PiecePosition, board: &Board, as_attacks: bool
 }
 
 pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool, attacks_only: bool) -> MovesIter {
+    //println!("Finding moves for pawn: {:?}", piece);
+    //println!("piece on board: {}", board.mb.getp(piece.to_position()));
+
     let mut moves: MoveList = Vec::with_capacity(8);
     
     let starting_rank: Rank;
     let y_dir_sign: Rank;
     let double_push_rank: Rank;
     let single_push_rank: Rank;
-    let back_rank: Rank;
+    let rank_for_promotion: Rank;
     let ep_cap_rank: Rank;
 
     
@@ -327,18 +345,18 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
         starting_rank = WHITE_PAWN_STARTING_RANK;
         single_push_rank = WHITE_SINGLE_PUSH_RANK;
         double_push_rank = WHITE_DOUBLE_PUSH_RANK;
-        back_rank = WHITE_BACK_RANK;
-        ep_cap_rank = WHITE_EP_CAP_RANK
+        rank_for_promotion = BLACK_BACK_RANK;  //opposite
+        ep_cap_rank = WHITE_EP_CAP_RANK;
     } else { 
         y_dir_sign = BLACK_Y_DIR_SIGN;
         starting_rank = BLACK_PAWN_STARTING_RANK;
         single_push_rank = BLACK_SINGLE_PUSH_RANK;
         double_push_rank = BLACK_DOUBLE_PUSH_RANK;
-        back_rank = BLACK_BACK_RANK;
-        ep_cap_rank = BLACK_EP_CAP_RANK
+        rank_for_promotion = WHITE_BACK_RANK; //opposite
+        ep_cap_rank = BLACK_EP_CAP_RANK;
     }
     
-    let is_promotable = if piece.2 == back_rank - y_dir_sign { true } else { false };
+    let is_promotable = if piece.2 == rank_for_promotion - y_dir_sign { true } else { false };
 
     let can_double_push =
         !attacks_only 
@@ -403,9 +421,56 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
         && (attacks_only || is_occupied_and_enemy(
             board.mb.get(right_dest_file, right_dest_rank),
             piece.0));
+    
+    // if piece.1 == 4 && piece.2 == 1 {
+    //     println!("attacks_only: {}", attacks_only);
+    //     //board.print_board();
+    //     println!("piece: {:?}", piece);
+    //     println!("rank_for_promotion: {}", rank_for_promotion);
+    //     println!("is_promotable: {}", is_promotable);
 
- 
-    if is_promotable {
+    //     println!("can_left_capture: {}", can_left_capture);
+    //     println!("can_right_capture: {}", can_right_capture);
+    //     println!("left_dest_file: {}", left_dest_file);
+    //     println!("left_dest_rank: {}", left_dest_rank);
+    //     println!("piece type at left dest: {}", board.mb.get(left_dest_file, left_dest_rank));
+    //     println!("OFF_BOARD: {}", OFF_BOARD);
+    // }
+
+    // if piece.1 == 7 && piece.2 == 1 {
+    //     println!("piece: {:?}", piece);
+    //     println!("rank_for_promotion: {}", rank_for_promotion);
+    //     println!("is_promotable: {}", is_promotable);
+    //     
+    // }
+
+    if attacks_only {
+        if can_left_capture {
+            let dest_pos = Position(left_dest_file, left_dest_rank);
+            let dest_piece = board.mb.get(left_dest_file, left_dest_rank);
+
+            moves.push(Move {
+                origin_piece: piece.0,
+                origin_pos: piece.to_position(),
+                dest_piece: dest_piece,
+                dest_pos: dest_pos,
+                meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+            });
+        }
+        
+        if can_right_capture {
+            let dest_pos = Position(right_dest_file, right_dest_rank);
+            let dest_piece = board.mb.get(right_dest_file, right_dest_rank);
+
+            moves.push(Move {
+                origin_piece: piece.0,
+                origin_pos: piece.to_position(),
+                dest_piece: dest_piece,
+                dest_pos: dest_pos,
+                meta_info: if dest_piece == NO_PIECE { QUIET_MOVE } else { CAPTURE }
+            });
+        }
+    } else if is_promotable {
         if can_push {
             let dest_pos = Position(piece.1, (piece.2 as i8 + y_dir_sign) as i8);
 
@@ -476,7 +541,15 @@ pub fn generate_pawn_moves(piece: PiecePosition, board: &Board, include_ep: bool
 pub fn pawn_promo_capture(dest_pos: Position, origin_pos: Position, origin_piece: PieceType, dest_piece: PieceType) -> Vec<Move> {
     let mut moves: MoveList = Vec::with_capacity(4);
 
-    assert!(dest_piece != NO_PIECE);
+    assert!(dest_piece != NO_PIECE && dest_piece != OFF_BOARD);
+    
+    moves.push(Move {
+        origin_piece: origin_piece,
+        origin_pos: origin_pos,
+        dest_piece: dest_piece,
+        dest_pos: dest_pos,
+        meta_info: QUEEN_PROMO_CAPTURE
+    });
     
     moves.push(Move {
         origin_piece: origin_piece,
@@ -491,24 +564,16 @@ pub fn pawn_promo_capture(dest_pos: Position, origin_pos: Position, origin_piece
         origin_pos: origin_pos,
         dest_piece: dest_piece,
         dest_pos: dest_pos,
-        meta_info: BISHOP_PROMO_CAPTURE
-    });
-    
-    moves.push(Move {
-        origin_piece: origin_piece,
-        origin_pos: origin_pos,
-        dest_piece: dest_piece,
-        dest_pos: dest_pos,
         meta_info: ROOK_PROMO_CAPTURE
     });
-    
+     
     moves.push(Move {
         origin_piece: origin_piece,
         origin_pos: origin_pos,
         dest_piece: dest_piece,
         dest_pos: dest_pos,
-        meta_info: QUEEN_PROMO_CAPTURE
-    });
+        meta_info: BISHOP_PROMO_CAPTURE
+    }); 
 
     moves
 }
@@ -521,15 +586,15 @@ pub fn pawn_promo(dest_pos: Position, origin_pos: Position, origin_piece: PieceT
         origin_pos: origin_pos,
         dest_piece: NO_PIECE,
         dest_pos: dest_pos,
-        meta_info: KNIGHT_PROMOTION,
+        meta_info: QUEEN_PROMOTION,
     });
-    
+     
     moves.push(Move {
         origin_piece: origin_piece,
         origin_pos: origin_pos,
         dest_piece: NO_PIECE,
         dest_pos: dest_pos,
-        meta_info: BISHOP_PROMOTION,
+        meta_info: KNIGHT_PROMOTION,
     });
     
     moves.push(Move {
@@ -545,8 +610,9 @@ pub fn pawn_promo(dest_pos: Position, origin_pos: Position, origin_piece: PieceT
         origin_pos: origin_pos,
         dest_piece: NO_PIECE,
         dest_pos: dest_pos,
-        meta_info: QUEEN_PROMOTION,
+        meta_info: BISHOP_PROMOTION,
     });
+    
 
     moves
 }

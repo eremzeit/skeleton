@@ -56,6 +56,8 @@ impl Mailbox {
 
     pub fn move_piece(&mut self, orig_pos: Position, dest_pos: Position) {
         assert!(self.get(orig_pos.0, orig_pos.1) != NO_PIECE);
+        assert!(orig_pos.is_valid());
+        assert!(dest_pos.is_valid());
 
         let piece = self.get(orig_pos.0, orig_pos.1);
         self.set(dest_pos.0, dest_pos.1, piece);

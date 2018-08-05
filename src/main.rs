@@ -13,8 +13,7 @@ pub mod board;
 pub mod bitboard;
 pub mod zobrist;
 pub mod moves;
-//pub mod search;
-
+pub mod search;
 
 extern crate regex;
 extern crate rand;

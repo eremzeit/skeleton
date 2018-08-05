@@ -7,6 +7,9 @@ use board::history::MoveContext;
 
 pub fn make_move(board: &mut Board, mv: Move) {
     assert!(mv.is_valid());
+
+    //println!("board.to_move: {}", board.to_move);
+    //println!("color_of(mv.origin_piece): {}", color_of(mv.origin_piece));
     assert!(board.to_move == color_of(mv.origin_piece));
 
     let move_context = MoveContext {

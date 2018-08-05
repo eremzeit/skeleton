@@ -1,3 +1,4 @@
+
 use types::*;
 use util::*;
 use constants::*;
@@ -40,8 +41,10 @@ impl Move {
 
         let valid_castling = true;
         let valid_promotion = true;
+        
+        let positions_valid = self.origin_pos.is_valid() && self.dest_pos.is_valid();
 
-        is_piece && valid_capture && valid_ep_capture && valid_castling && valid_promotion
+        is_piece && valid_capture && valid_ep_capture && valid_castling && valid_promotion && positions_valid
     }
 
     pub fn color(&self) -> u8 {
@@ -49,11 +52,21 @@ impl Move {
     }
 }
 
+fn promotion_move_type_to_piece(meta_info: MetaInfo, color: Color) -> &'static str {
+    match (meta_info) {
+        ROOK_PROMOTION | ROOK_PROMO_CAPTURE => "R", 
+        KNIGHT_PROMOTION | KNIGHT_PROMO_CAPTURE => "N",
+        QUEEN_PROMOTION | QUEEN_PROMO_CAPTURE => "Q",
+        BISHOP_PROMOTION | BISHOP_PROMO_CAPTURE => "B",
+        _ => "X"
+    }
+}
+
 impl fmt::Debug for Move {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         
         match self.meta_info {
-            QUIET_MOVE =>  {
+            QUIET_MOVE | DOUBLE_PAWN_PUSH =>  {
                 //if self.dest_piece != NO_PIECE {
                 //    println!("error!  {:?}, {:?}, {:?}, {:?}, {}", self.origin_piece, self.origin_pos, self.dest_piece, self.dest_pos, self.meta_info);
                 //}
@@ -98,12 +111,36 @@ impl fmt::Debug for Move {
             QUEEN_CASTLE => {
                 write!(f, "O-O-O")    
             },
-
-            _ => {
-                write!(f, "|{}{}{}-{}{}", 
+            
+            ROOK_PROMOTION | KNIGHT_PROMOTION | QUEEN_PROMOTION | BISHOP_PROMOTION => {
+                write!(f, "{}{}{}={}{}{}", 
                     piece_type_to_char(self.origin_piece), 
                     file_to_char(self.origin_pos.0), 
                     self.origin_pos.1 + 1,
+                    promotion_move_type_to_piece(self.meta_info, color_of(self.origin_piece)), 
+                    file_to_char(self.dest_pos.0), 
+                    self.dest_pos.1 + 1,
+                )    
+            },
+            
+            ROOK_PROMO_CAPTURE | KNIGHT_PROMO_CAPTURE | QUEEN_PROMO_CAPTURE | BISHOP_PROMO_CAPTURE => {
+                write!(f, "{}{}{}x={}{}{}", 
+                    piece_type_to_char(self.origin_piece), 
+                    file_to_char(self.origin_pos.0), 
+                    self.origin_pos.1 + 1,
+                    promotion_move_type_to_piece(self.meta_info, color_of(self.origin_piece)), 
+                    file_to_char(self.dest_pos.0), 
+                    self.dest_pos.1 + 1,
+                )    
+            },
+            
+            _ => {
+                write!(f, "{}{}{}?{}?{}{}", 
+                    piece_type_to_char(self.origin_piece), 
+                    file_to_char(self.origin_pos.0), 
+                    self.origin_pos.1 + 1,
+
+                    self.meta_info,
                     
                     file_to_char(self.dest_pos.0), 
                     self.dest_pos.1 + 1,

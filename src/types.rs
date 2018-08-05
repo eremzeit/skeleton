@@ -17,6 +17,10 @@ impl Position {
         Position(file, rank) 
     }
 
+    pub fn is_valid(&self) -> bool {
+        self.0 >= 0 && self.0 < FILE_COUNT && self.1 >= 0 && self.1 < RANK_COUNT
+    }
+
     pub fn from_pgn(s: &str) -> Position {
         let pgn = s.replace(" ", "");
 
