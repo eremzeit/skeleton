@@ -8,12 +8,6 @@ use std::iter;
 use std::cmp;
 use super::*;
 
-const BOTH_CASTLE_KINGSIDE: &'static str = "rnbqk2r/ppppp2p/5n1b/5pp1/3P1P2/5NP1/PPP1P1BP/RNBQK2R b KQkq - 9 5";
-const BOTH_CASTLE_KINGSIDE_BLOCKED: &'static str = "r1bqk2r/pp1p3p/2p1pn1b/3N1pp1/1B3P2/5NP1/PPP1n1BP/R2QK2R b KQkq - 19 10";
-
-const BOTH_CASTLE_QUEENSIDE: &'static str = "r3kbnr/pppqpppp/2n1b3/3p4/3P4/2N1B3/PPPQPPPP/R3KBNR w KQkq - 8 5";
-const BOTH_CASTLE_QUEENSIDE_BLOCKED: &'static str = "r3kbnr/pppq1ppp/2n1p3/3p2B1/3P2b1/2N1P3/PPPQ1PPP/R3KBNR w KQkq - 12 7";
-
 pub fn generate_castling_moves(piece: PiecePosition, board: &Board) -> MovesIter {
     let mut moves: Vec<Move> = vec![];
 
@@ -91,6 +85,12 @@ pub fn generate_castling_moves(piece: PiecePosition, board: &Board) -> MovesIter
 }
 
 mod tests {
+    const BOTH_CASTLE_KINGSIDE: &'static str = "rnbqk2r/ppppp2p/5n1b/5pp1/3P1P2/5NP1/PPP1P1BP/RNBQK2R b KQkq - 9 5";
+    const BOTH_CASTLE_KINGSIDE_BLOCKED: &'static str = "r1bqk2r/pp1p3p/2p1pn1b/3N1pp1/1B3P2/5NP1/PPP1n1BP/R2QK2R b KQkq - 19 10";
+
+    const BOTH_CASTLE_QUEENSIDE: &'static str = "r3kbnr/pppqpppp/2n1b3/3p4/3P4/2N1B3/PPPQPPPP/R3KBNR w KQkq - 8 5";
+    const BOTH_CASTLE_QUEENSIDE_BLOCKED: &'static str = "r3kbnr/pppq1ppp/2n1p3/3p2B1/3P2b1/2N1P3/PPPQ1PPP/R3KBNR w KQkq - 12 7";
+
     #[allow(unused_imports)]
     use super::*;
 
@@ -143,14 +143,7 @@ mod tests {
 
         assert!(diff.len() == 0);
     }
-
-
-//const BOTH_CASTLE_KINGSIDE: &'static str = "rnbqk2r/ppppp2p/5n1b/5pp1/3P1P2/5NP1/PPP1P1BP/RNBQK2R b KQkq - 9 5";
-//const BOTH_CASTLE_KINGSIDE_BLOCKED: &'static str = "r1bqk2r/pp1p3p/2p1pn1b/3N1pp1/1B3P2/5NP1/PPP1n1BP/R2QK2R b KQkq - 19 10";
-//
-//const BOTH_CASTLE_QUEENSIDE: &'static str = "r3kbnr/pppqpppp/2n1b3/3p4/3P4/2N1B3/PPPQPPPP/R3KBNR w KQkq - 8 5";
-//const BOTH_CASTLE_QUEENSIDE_BLOCKED: &'static str = "r3kbnr/pppq1ppp/2n1p3/3p2B1/3P2b1/2N1P3/PPPQ1PPP/R3KBNR w KQkq - 12 7";
-    
+ 
     #[test]        
     fn test_castling_queenside_white() {
         let board = Board::from_fen(BOTH_CASTLE_QUEENSIDE);

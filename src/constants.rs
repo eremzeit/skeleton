@@ -48,16 +48,13 @@ pub type File = i8;
 pub const FILE_COUNT: i8 = 8;
 
 // Move meta constants
-//pub const QUIET_MOVE: u8 = 0b0000;
-//
-// trying this constant out to avoid the default
-// for the data type being a sane value
-pub const QUIET_MOVE: u8 = 0b0111; 
+pub const NULL_MOVE: u8 = 0b0000;
 pub const DOUBLE_PAWN_PUSH: u8 = 0b0001;
 pub const KING_CASTLE: u8 = 0b0010;
 pub const QUEEN_CASTLE: u8 = 0b0011;
 pub const CAPTURE: u8 = 0b0100;
 pub const EP_CAPTURE: u8 = 0b0101;
+pub const QUIET_MOVE: u8 = 0b0111; 
 pub const KNIGHT_PROMOTION: u8 = 0b1000;
 pub const BISHOP_PROMOTION: u8 = 0b1001;
 pub const ROOK_PROMOTION: u8 = 0b1010;
@@ -83,6 +80,9 @@ pub const BLACK_SINGLE_PUSH_RANK: i8 = 5;
 pub const BLACK_DOUBLE_PUSH_RANK: i8 = 4;
 pub const BLACK_BACK_RANK: i8 = 7;
 pub const BLACK_EP_CAP_RANK: i8 = 3;
+
+pub const QUEEN_FILE: File = 3;
+pub const KING_FILE: File = 4;
 
 // ie. the file that the king will end up on
 pub const QUEEN_SIDE_CASTLE_FILE: File = 2;

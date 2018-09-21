@@ -78,6 +78,10 @@ impl Board {
         board
     }
     
+    pub fn starting_position() -> Board {
+        Board::new()
+    }
+    
     pub fn whites_turn(&self) -> bool {
         self.to_move == WHITE
     }

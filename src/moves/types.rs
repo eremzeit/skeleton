@@ -50,6 +50,133 @@ impl Move {
     pub fn color(&self) -> u8 {
        if self.origin_piece >= B_PAWN && self.origin_piece <= B_KING { BLACK } else { WHITE }
     }
+
+    pub fn kingside_castle(color: Color) -> Move {
+        let back_rank = match color {
+            WHITE => WHITE_BACK_RANK,
+            _ => BLACK_BACK_RANK,
+        };
+
+        Move {
+            origin_piece: to_color(KING),
+            origin_pos: Position(KING_FILE, back_rank),
+            dest_piece: NO_PIECE,
+            dest_pos: Position(KING_SIDE_CASTLE_FILE, back_rank),
+            meta_info: KING_CASTLE 
+        }
+    }
+    
+    pub fn kingside_castle(color: Color) -> Move {
+        let back_rank = match color {
+            WHITE => WHITE_BACK_RANK,
+            _ => BLACK_BACK_RANK,
+        };
+
+        Move {
+            origin_piece: to_color(QUEEN),
+            origin_pos: Position(QUEEN_FILE, back_rank),
+            dest_piece: NO_PIECE,
+            dest_pos: Position(QUEEN_SIDE_CASTLE_FILE, back_rank),
+            meta_info: QUEEN_CASTLE 
+        }
+    }
+
+    // from pure coordinate notation
+    pub fn from_pcn_string(move_str: &str, board: &Board) -> Move {
+        match move_str {
+            "0000" => {
+                return Move {
+                    origin_piece: NO_PIECE,
+                    dest_piece: NO_PIECE,
+                    origin_pos: Position(0, 0),
+                    dest_pos: Position(0, 0),
+                    meta_info: NULL_MOVE, 
+                };
+            }
+            
+            "e1g1" if board.castling & W_OO => {
+                return Move::kingside_castle(WHITE);
+            },
+
+            "e8g8" if board.castling & B_OO => {
+                return Move::kingside_castle(BLACK);
+            },
+
+            "e1c1" if board.castling & W_OOO => {
+                return Move::queenside_castle(WHITE);
+            },
+            "e8c8" if board.castling & B_OOO => {
+                return Move::queenside_castle(BLACK);
+            },
+
+            _ => ()
+        };
+
+        let mv = Move::new();
+        mv.meta_info = QUIET_MOVE;
+         
+        let moves: Vec<char> = move_str.chars().collect();
+        
+        mv.origin_pos = Position(
+            char_to_file(moves.nth(0)),
+            moves.nth(1).parse::<Rank>().unwrap()
+        );
+        
+        mv.dest_pos = Position(
+            char_to_file(moves.nth(2)),
+            moves.nth(3).parse::<Rank>().unwrap()
+        );
+
+        mv.origin_piece = board.getp(mv.origin_pos);
+        mv.dest_piece = board.getp(mv.dest_pos);
+
+        if moves.len() >= 5 {
+            assert_eq!(to_white(board.getp(mv.origin_pos)), W_PAWN);
+
+            // promotion
+            let promotion = moves.nth(4);
+
+            let is_promo_capture = mv.origin_pos.0 != mv.dest_pos.0;
+
+            mv.meta_info = if is_promo_capture {
+                match promotion {
+                    "q" => QUEEN_PROMO_CAPTURE,
+                    "r" => ROOK_PROMO_CAPTURE,
+                    "b" => BISHOP_PROMO_CAPTURE,
+                    "n" => KNIGHT_PROMO_CAPTURE,
+                    _ => 0
+                }
+            } else {
+                match promotion {
+                    "q" => QUEEN_PROMOTION,
+                    "r" => ROOK_PROMOTION,
+                    "b" => BISHOP_PROMOTION,
+                    "n" => KNIGHT_PROMOTION,
+                    _ => 0
+                }
+            };
+
+            return mv;
+        } else if to_white(board.getp(mv.origin_pos)) == W_PAWN {
+            let is_double = (mv.origin_pos.1 - mv.dest_pos.1).abs() > 1;
+            if is_double { 
+                mv.meta_info = DOUBLE_PAWN_PUSH;
+                return mv;
+            }
+            
+            let is_capture = mv.origin_pos.0 != mv.dest_pos.0;
+            let is_ep_capture = is_capture && board.getp(mv.dest_pos) == NO_PIECE; 
+
+            if is_ep_capture {
+                let neighbor_is_pawn = to_white(board.get(mv.dest_pos.0, mv.origin_pos.1)) == W_PAWN;
+                assert!(!is_ep_capture || neighbor_is_pawn);
+                assert!(!is_ep_capture || board.en_passant == mv.dest_pos.0);
+                mv.meta_info = EP_CAPTURE;
+            }
+        }
+
+        mv
+    }
 }
 
 fn promotion_move_type_to_piece(meta_info: MetaInfo, color: Color) -> &'static str {
